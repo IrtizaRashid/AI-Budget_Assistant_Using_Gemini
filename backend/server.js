@@ -11,6 +11,10 @@ import cors from 'cors';
 import { config } from './config/env.js';
 import { testConnection } from './database/db.js';
 import healthRoutes from './routes/healthRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import expenseRoutes from './routes/expenseRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
@@ -20,7 +24,11 @@ app.use(cors());            // Allow the React frontend to call this API
 app.use(express.json());    // Parse incoming JSON request bodies
 
 // ---- Routes ----
-app.use('/api', healthRoutes);   // -> GET /api/health
+app.use('/api', healthRoutes);              // GET  /api/health
+app.use('/api/users', userRoutes);          // POST /api/users
+app.use('/api/categories', categoryRoutes); // POST /api/categories, GET /api/categories/:userId
+app.use('/api/expenses', expenseRoutes);    // POST /api/expenses,   GET /api/expenses/:userId
+app.use('/api/dashboard', dashboardRoutes); // GET  /api/dashboard/:userId
 
 // ---- Fallbacks ----
 app.use(notFound);          // Unknown route -> 404

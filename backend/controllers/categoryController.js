@@ -1,0 +1,55 @@
+// Controller for budget-category endpoints.
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import * as categoryService from '../services/categoryService.js';
+
+// POST /api/categories
+// Body: an ARRAY of categories (the recommended budget split).
+export const createCategories = asyncHandler(async (req, res) => {
+  const categories = req.body;
+
+  if (!Array.isArray(categories) || categories.length === 0) {
+    return res
+      .status(400)
+      .json({ error: 'Request body must be a non-empty array of categories' });
+  }
+
+  // Validate each item has the required fields.
+  for (const c of categories) {
+    if (!c.user_id || !c.category_name || c.allocated_amount === undefined) {
+      return res.status(400).json({
+        error:
+          'Each category requires user_id, category_name and allocated_amount',
+      });
+    }
+  }
+
+  const inserted = await categoryService.createCategories(categories);
+  res.status(201).json({
+    message: 'Categories saved',
+    inserted,
+  });
+});
+
+// GET /api/categories/:userId
+// Returns each category with a CALCULATED remaining_amount.
+export const getCategories = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const rows = await categoryService.getCategoriesByUser(userId);
+
+  // Remaining = Allocated - Spent  (computed, never stored).
+  const categories = rows.map((c) => {
+    const allocated = Number(c.allocated_amount);
+    const spent = Number(c.spent_amount);
+    return {
+      id: c.id,
+      user_id: c.user_id,
+      category_name: c.category_name,
+      allocated_amount: allocated,
+      spent_amount: spent,
+      remaining_amount: allocated - spent,
+    };
+  });
+
+  res.status(200).json(categories);
+});
