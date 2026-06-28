@@ -1,10 +1,9 @@
-// Reusable AI service (powered by Groq).
+// Reusable AI service powered by Groq.
 //
-// Groq exposes an OpenAI-compatible API, so we use the official `openai` SDK
-// pointed at Groq's endpoint (see config.groq.baseURL). Its job: turn the
-// user's message into a structured JSON intent, and generate recommendations.
-// It performs NO calculations and NO database work — controllers do all that.
-import OpenAI from 'openai';
+// Its job: turn the user's message into a structured JSON intent, and generate
+// financial recommendations. It performs NO calculations and NO database work —
+// the controllers do all of that.
+import Groq from 'groq-sdk';
 import { config } from '../config/env.js';
 
 // The system prompt locks the model into "JSON-only intent extractor" mode.
@@ -103,10 +102,8 @@ const getClient = () => {
     );
   }
   if (!client) {
-    // baseURL lets us target any OpenAI-compatible provider (e.g. Groq).
-    client = new OpenAI({
+    client = new Groq({
       apiKey: config.groq.apiKey,
-      baseURL: config.groq.baseURL,
       timeout: 15000, // fail fast (15s) instead of hanging the request
       maxRetries: 1, // one automatic retry on transient network errors
     });
@@ -116,11 +113,11 @@ const getClient = () => {
 
 // Interpret a user message -> parsed intent object.
 export const interpretMessage = async (message) => {
-  const openai = getClient();
+  const groq = getClient();
 
   let completion;
   try {
-    completion = await openai.chat.completions.create({
+    completion = await groq.chat.completions.create({
       model: config.groq.model,
       temperature: 0, // deterministic, reduces hallucinated formats
       response_format: { type: 'json_object' }, // forces valid JSON output
@@ -171,11 +168,11 @@ Rules:
 // Generate 3–5 short financial recommendations from a structured summary.
 // `summary` is a plain object (budget totals + per-category + recent expenses).
 export const generateRecommendations = async (summary) => {
-  const openai = getClient();
+  const groq = getClient();
 
   let completion;
   try {
-    completion = await openai.chat.completions.create({
+    completion = await groq.chat.completions.create({
       model: config.groq.model,
       temperature: 0.5, // a little variety in phrasing
       response_format: { type: 'json_object' },

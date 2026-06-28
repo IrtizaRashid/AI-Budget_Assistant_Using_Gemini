@@ -32,7 +32,7 @@ The AI Personal Budget Assistant helps users plan and monitor their monthly spen
 | HTTP      | Axios                                    |
 | Backend   | Node.js, Express.js                      |
 | Database  | MySQL (mysql2)                           |
-| AI        | Groq (via the OpenAI-compatible SDK)    |
+| AI        | Groq (`groq-sdk`)                       |
 
 ---
 

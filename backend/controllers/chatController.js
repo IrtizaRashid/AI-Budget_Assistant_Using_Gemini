@@ -33,8 +33,8 @@ export const chat = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'message is required.' });
   }
 
-  // --- Step 1: Ask OpenAI to interpret the message into an intent ---
-  // Any OpenAI failure (network, bad key, malformed JSON) is handled here.
+  // --- Step 1: Ask Groq to interpret the message into an intent ---
+  // Any AI failure (network, bad key, malformed JSON) is handled here.
   let intent;
   try {
     intent = await groqService.interpretMessage(message);
