@@ -73,7 +73,13 @@ const buildAssistantMessage = (data) => {
 //   categories     : current categories (used by the over-budget transfer flow)
 //   onDataChanged  : callback to refresh the dashboard after any change
 //                    (expense added OR deleted)
-export default function ChatBox({ userId, categories = [], onDataChanged }) {
+//   onWarning      : callback to surface a budget warning toast
+export default function ChatBox({
+  userId,
+  categories = [],
+  onDataChanged,
+  onWarning,
+}) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -129,6 +135,11 @@ export default function ChatBox({ userId, categories = [], onDataChanged }) {
       if (changesData && typeof onDataChanged === 'function') {
         onDataChanged();
       }
+
+      // Surface any budget warning returned after recording the expense.
+      if (data.budgetWarning && typeof onWarning === 'function') {
+        onWarning(data.budgetWarning);
+      }
     } catch (err) {
       const errorText =
         err.response?.data?.error ||
@@ -183,12 +194,14 @@ export default function ChatBox({ userId, categories = [], onDataChanged }) {
                   expense={msg.expense}
                   categories={categories}
                   onChanged={onDataChanged}
+                  onWarning={onWarning}
                 />
               ) : msg.type === 'duplicate' ? (
                 <DuplicateCard
                   userId={userId}
                   expense={msg.expense}
                   onChanged={onDataChanged}
+                  onWarning={onWarning}
                 />
               ) : (
                 <p>{msg.text}</p>

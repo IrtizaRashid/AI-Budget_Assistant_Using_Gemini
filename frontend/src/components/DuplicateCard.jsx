@@ -9,7 +9,8 @@ import { formatPKR } from '../utils/format.js';
 //   userId    : current user
 //   expense   : { category, amount, description } (the pending expense)
 //   onChanged : called after a successful insert to refresh the dashboard
-export default function DuplicateCard({ userId, expense, onChanged }) {
+//   onWarning : called with a budget warning (if any) after recording
+export default function DuplicateCard({ userId, expense, onChanged, onWarning }) {
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState(null); // { text } | { error }
   const [done, setDone] = useState(false);
@@ -28,6 +29,7 @@ export default function DuplicateCard({ userId, expense, onChanged }) {
           }.`,
         });
         onChanged?.();
+        if (res.budgetWarning) onWarning?.(res.budgetWarning);
       }
       setDone(true);
     } catch (err) {

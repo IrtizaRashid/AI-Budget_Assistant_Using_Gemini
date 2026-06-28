@@ -40,27 +40,47 @@ export default function CategoryTable({ categories }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {categories.map((c) => (
-              <tr key={c.category} className="transition hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-700">
-                  {c.category}
-                </td>
-                <td className="px-6 py-4 text-right text-slate-600">
-                  {formatPKR(c.allocated)}
-                </td>
-                <td className="px-6 py-4 text-right text-slate-600">
-                  {formatPKR(c.spent)}
-                </td>
-                {/* Negative remaining (over budget) is highlighted in red */}
-                <td
-                  className={`px-6 py-4 text-right font-semibold ${
-                    c.remaining < 0 ? 'text-red-600' : 'text-emerald-600'
-                  }`}
-                >
-                  {formatPKR(c.remaining)}
-                </td>
-              </tr>
-            ))}
+            {categories.map((c) => {
+              // Highlight categories nearing / over their limit.
+              const pct = c.allocated > 0 ? (c.remaining / c.allocated) * 100 : 100;
+              let remainColor = 'text-emerald-600';
+              let badge = null;
+              if (c.remaining < 0) {
+                remainColor = 'text-red-600';
+                badge = { text: 'Over', cls: 'bg-red-100 text-red-700' };
+              } else if (pct < 10) {
+                remainColor = 'text-orange-600';
+                badge = { text: 'Critical', cls: 'bg-orange-100 text-orange-700' };
+              } else if (pct < 20) {
+                remainColor = 'text-amber-600';
+                badge = { text: 'Low', cls: 'bg-amber-100 text-amber-700' };
+              }
+
+              return (
+                <tr key={c.category} className="transition hover:bg-slate-50">
+                  <td className="px-6 py-4 font-medium text-slate-700">
+                    {c.category}
+                    {badge && (
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}
+                      >
+                        {badge.text}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right text-slate-600">
+                    {formatPKR(c.allocated)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-slate-600">
+                    {formatPKR(c.spent)}
+                  </td>
+                  {/* Remaining is coloured by severity (green/amber/orange/red) */}
+                  <td className={`px-6 py-4 text-right font-semibold ${remainColor}`}>
+                    {formatPKR(c.remaining)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

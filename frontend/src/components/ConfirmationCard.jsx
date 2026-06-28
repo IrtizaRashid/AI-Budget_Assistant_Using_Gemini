@@ -11,11 +11,13 @@ import { formatPKR } from '../utils/format.js';
 //   expense    : { category, amount, description } (the pending expense)
 //   categories : [{ category, allocated, spent, remaining }] (for transfer)
 //   onChanged  : called after a successful action to refresh the dashboard
+//   onWarning  : called with a budget warning (if any) after recording
 export default function ConfirmationCard({
   userId,
   expense,
   categories = [],
   onChanged,
+  onWarning,
 }) {
   // step: 'options' | 'source' | 'done'
   const [step, setStep] = useState('options');
@@ -53,6 +55,8 @@ export default function ConfirmationCard({
         setOutcome({ text: res.message });
         onChanged?.();
       }
+      // Surface any budget warning returned with the insert.
+      if (res.budgetWarning) onWarning?.(res.budgetWarning);
       setStep('done');
     } catch (err) {
       // Stay on the current step so the user can retry / pick another option.

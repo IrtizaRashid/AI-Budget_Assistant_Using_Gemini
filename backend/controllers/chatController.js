@@ -9,6 +9,7 @@ import * as openaiService from '../services/openaiService.js';
 import * as expenseService from '../services/expenseService.js';
 import * as userService from '../services/userService.js';
 import * as categoryService from '../services/categoryService.js';
+import { buildBudgetWarning } from '../utils/budgetWarning.js';
 
 // The only categories we accept (defends against AI hallucinating new ones).
 const SUPPORTED_CATEGORIES = [
@@ -125,6 +126,16 @@ export const chat = asyncHandler(async (req, res) => {
         description: desc,
       });
 
+      // After recording, evaluate the category's remaining budget for a warning.
+      const updatedCat = await categoryService.getCategoryByName(userId, category);
+      const budgetWarning = updatedCat
+        ? buildBudgetWarning(
+            category,
+            Number(updatedCat.allocated_amount),
+            Number(updatedCat.spent_amount)
+          )
+        : null;
+
       return res.status(201).json({
         intent: 'add_expense',
         success: true,
@@ -132,6 +143,7 @@ export const chat = asyncHandler(async (req, res) => {
         amount: amt,
         description: expense.description,
         expense,
+        budgetWarning, // null or { warning, level, message }
       });
     }
 

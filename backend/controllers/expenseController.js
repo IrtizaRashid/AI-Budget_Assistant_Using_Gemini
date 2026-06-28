@@ -2,6 +2,19 @@
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import * as expenseService from '../services/expenseService.js';
 import * as categoryService from '../services/categoryService.js';
+import { buildBudgetWarning } from '../utils/budgetWarning.js';
+
+// Helper: build the budget warning for a category's CURRENT state.
+const warningFor = async (userId, category) => {
+  const cat = await categoryService.getCategoryByName(userId, category);
+  return cat
+    ? buildBudgetWarning(
+        category,
+        Number(cat.allocated_amount),
+        Number(cat.spent_amount)
+      )
+    : null;
+};
 
 // POST /api/expenses
 // Body: { user_id, category, amount, description?, expense_date? }
@@ -97,6 +110,7 @@ export const confirmExpense = asyncHandler(async (req, res) => {
       action: 'add_anyway',
       message: 'Expense added.',
       expense: saved,
+      budgetWarning: await warningFor(userId, expense.category),
     });
   }
 
@@ -122,6 +136,7 @@ export const confirmExpense = asyncHandler(async (req, res) => {
       warning:
         over > 0 ? `${expense.category} budget exceeded by ${over}.` : null,
       expense: saved,
+      budgetWarning: await warningFor(userId, expense.category),
     });
   }
 
@@ -151,6 +166,7 @@ export const confirmExpense = asyncHandler(async (req, res) => {
         action: 'transfer',
         message: `Transferred PKR ${amount} from ${fromCategory} to ${expense.category}.`,
         expense: saved,
+        budgetWarning: await warningFor(userId, expense.category),
       });
     } catch (err) {
       // Insufficient source funds -> a clean 400, not a 500.

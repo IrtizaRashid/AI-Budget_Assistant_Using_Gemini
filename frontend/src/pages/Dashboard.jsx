@@ -11,6 +11,7 @@ import CategoryTable from '../components/CategoryTable.jsx';
 import ChatBox from '../components/ChatBox.jsx';
 import ExpenseHistory from '../components/ExpenseHistory.jsx';
 import RecentExpenses from '../components/RecentExpenses.jsx';
+import WarningToast from '../components/WarningToast.jsx';
 import ChartCard from '../components/charts/ChartCard.jsx';
 import PieChart from '../components/charts/PieChart.jsx';
 import BarChart from '../components/charts/BarChart.jsx';
@@ -74,6 +75,26 @@ export default function Dashboard() {
   // Silent refresh used by chat + delete actions (no spinner, keeps chat).
   const refresh = useCallback(() => loadData(true), [loadData]);
 
+  // --- Budget warning toasts ---
+  // Auto-dismissing cards shown when a category gets low/exceeded after an
+  // expense. They never block insertion — they just inform.
+  const [warnings, setWarnings] = useState([]); // [{ id, level, message }]
+
+  const dismissWarning = useCallback((id) => {
+    setWarnings((prev) => prev.filter((w) => w.id !== id));
+  }, []);
+
+  const pushWarning = useCallback(
+    (w) => {
+      if (!w || !w.warning) return; // null means "no warning"
+      const id = Date.now() + Math.random();
+      setWarnings((prev) => [...prev, { id, level: w.level, message: w.message }]);
+      // Disappear automatically after a few seconds.
+      setTimeout(() => dismissWarning(id), 6000);
+    },
+    [dismissWarning]
+  );
+
   // Fetch automatically when the dashboard opens.
   useEffect(() => {
     loadData();
@@ -95,6 +116,18 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Budget warning toasts (fixed, top-right, auto-dismiss) */}
+      <div className="fixed right-4 top-4 z-50 w-80 max-w-[90vw] space-y-2">
+        {warnings.map((w) => (
+          <WarningToast
+            key={w.id}
+            level={w.level}
+            message={w.message}
+            onClose={() => dismissWarning(w.id)}
+          />
+        ))}
+      </div>
+
       <div className="mx-auto max-w-6xl px-4 py-10">
         {/* Header */}
         <header className="mb-8">
@@ -219,6 +252,7 @@ export default function Dashboard() {
                   userId={userId}
                   categories={categories}
                   onDataChanged={refresh}
+                  onWarning={pushWarning}
                 />
               </section>
             </div>
