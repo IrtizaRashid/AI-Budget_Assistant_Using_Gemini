@@ -178,6 +178,13 @@ export const confirmExpense = asyncHandler(async (req, res) => {
     }
 
     try {
+      // Calculate the shortage amount to show in the message.
+      const toCat = await categoryService.getCategoryByName(userId, expense.category);
+      const toRemaining = toCat
+        ? Number(toCat.allocated_amount) - Number(toCat.spent_amount)
+        : 0;
+      const shortage = amount - toRemaining;
+
       const saved = await expenseService.transferFundsAndAddExpense({
         user_id: userId,
         toCategory: expense.category,
@@ -188,7 +195,7 @@ export const confirmExpense = asyncHandler(async (req, res) => {
       return res.status(201).json({
         status: 'success',
         action: 'transfer',
-        message: `Transferred PKR ${amount} from ${fromCategory} to ${expense.category}.`,
+        message: `Transferred PKR ${shortage} from ${fromCategory} to ${expense.category}.`,
         expense: saved,
         budgetWarning: await warningFor(userId, expense.category),
       });

@@ -153,7 +153,7 @@ export const transferFundsAndAddExpense = async ({
   try {
     await connection.beginTransaction();
 
-    // 1. Lock + read the source category and validate it has enough remaining.
+    // 1. Lock + read both categories.
     const [srcRows] = await connection.execute(
       `SELECT allocated_amount, spent_amount
          FROM budget_categories
@@ -167,35 +167,55 @@ export const transferFundsAndAddExpense = async ({
       e.code = 'INSUFFICIENT_FUNDS';
       throw e;
     }
+
+    const [tgtRows] = await connection.execute(
+      `SELECT allocated_amount, spent_amount
+         FROM budget_categories
+        WHERE user_id = ? AND category_name = ?
+        FOR UPDATE`,
+      [user_id, toCategory]
+    );
+    const tgt = tgtRows[0];
+    if (!tgt) {
+      const e = new Error(`Target category "${toCategory}" not found.`);
+      e.code = 'INSUFFICIENT_FUNDS';
+      throw e;
+    }
+
+    // 2. Calculate how much the target is short (only transfer the shortage).
+    const tgtRemaining = Number(tgt.allocated_amount) - Number(tgt.spent_amount);
+    const shortage = amount - tgtRemaining;
+
+    // 3. Validate the source has enough to cover the shortage.
     const srcRemaining = Number(src.allocated_amount) - Number(src.spent_amount);
-    if (srcRemaining < amount) {
+    if (srcRemaining < shortage) {
       const e = new Error(
-        `${fromCategory} only has ${srcRemaining} available; cannot transfer ${amount}.`
+        `${fromCategory} only has ${srcRemaining} available; cannot transfer ${shortage}.`
       );
       e.code = 'INSUFFICIENT_FUNDS';
       throw e;
     }
 
-    // 2. Move the allocation from source -> target.
+    // 4. Move only the shortage amount from source -> target.
     await connection.execute(
       `UPDATE budget_categories SET allocated_amount = allocated_amount - ?
         WHERE user_id = ? AND category_name = ?`,
-      [amount, user_id, fromCategory]
+      [shortage, user_id, fromCategory]
     );
     await connection.execute(
       `UPDATE budget_categories SET allocated_amount = allocated_amount + ?
         WHERE user_id = ? AND category_name = ?`,
-      [amount, user_id, toCategory]
+      [shortage, user_id, toCategory]
     );
 
-    // 3. Insert the expense against the target category.
+    // 5. Insert the expense against the target category (full amount).
     const [ins] = await connection.execute(
       `INSERT INTO expenses (user_id, category, amount, description)
        VALUES (?, ?, ?, ?)`,
       [user_id, toCategory, amount, description]
     );
 
-    // 4. Bump the target category's spent_amount.
+    // 6. Bump the target category's spent_amount by the full amount.
     await connection.execute(
       `UPDATE budget_categories SET spent_amount = spent_amount + ?
         WHERE user_id = ? AND category_name = ?`,
