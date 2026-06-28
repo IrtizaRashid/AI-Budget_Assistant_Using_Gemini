@@ -1,11 +1,11 @@
 // Chat controller — the heart of Step 5.
 //
-// Flow:  React -> here -> OpenAI (interpret only) -> VALIDATE -> DB -> React
+// Flow:  React -> here -> Groq (interpret only) -> VALIDATE -> DB -> React
 //
 // The AI ONLY classifies the message into an intent JSON. Every validation,
 // calculation, and database write happens HERE, in our own code.
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import * as openaiService from '../services/openaiService.js';
+import * as groqService from '../services/groqService.js';
 import * as expenseService from '../services/expenseService.js';
 import * as userService from '../services/userService.js';
 import * as categoryService from '../services/categoryService.js';
@@ -37,7 +37,7 @@ export const chat = asyncHandler(async (req, res) => {
   // Any OpenAI failure (network, bad key, malformed JSON) is handled here.
   let intent;
   try {
-    intent = await openaiService.interpretMessage(message);
+    intent = await groqService.interpretMessage(message);
   } catch (err) {
     return res
       .status(502)

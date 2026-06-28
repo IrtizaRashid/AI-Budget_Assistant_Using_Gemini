@@ -7,7 +7,7 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 import * as userService from '../services/userService.js';
 import * as categoryService from '../services/categoryService.js';
 import * as expenseService from '../services/expenseService.js';
-import * as openaiService from '../services/openaiService.js';
+import * as groqService from '../services/groqService.js';
 
 // GET /api/ai/recommendations/:userId
 export const getRecommendations = asyncHandler(async (req, res) => {
@@ -57,7 +57,7 @@ export const getRecommendations = asyncHandler(async (req, res) => {
   // --- Ask the AI to analyse the summary ---
   // Failures are surfaced as 502 so the frontend can show its fallback message.
   try {
-    const recommendations = await openaiService.generateRecommendations(summary);
+    const recommendations = await groqService.generateRecommendations(summary);
     return res.status(200).json({ recommendations });
   } catch (err) {
     return res

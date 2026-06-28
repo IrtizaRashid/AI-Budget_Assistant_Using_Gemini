@@ -13,12 +13,11 @@ export const config = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
   },
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
-    // Optional: point the OpenAI SDK at a compatible provider (e.g. Groq).
-    // Blank/undefined = use the real OpenAI endpoint.
-    baseURL: process.env.OPENAI_BASE_URL || undefined,
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    // Groq is OpenAI-compatible; this is its API base URL.
+    baseURL: process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
   },
 };
 

@@ -32,7 +32,7 @@ The AI Personal Budget Assistant helps users plan and monitor their monthly spen
 | HTTP      | Axios                                    |
 | Backend   | Node.js, Express.js                      |
 | Database  | MySQL (mysql2)                           |
-| AI        | OpenAI SDK (OpenAI-compatible; works with Groq) |
+| AI        | Groq (via the OpenAI-compatible SDK)    |
 
 ---
 
@@ -60,7 +60,7 @@ budget-ai/
 │   │   └── errorHandler.js       # Central error + 404 handlers
 │   ├── routes/                   # One router per resource
 │   ├── controllers/              # Request handling + validation
-│   └── services/                 # All SQL + OpenAI calls
+│   └── services/                 # All SQL + Groq (AI) calls
 │
 └── frontend/
     ├── index.html
@@ -79,7 +79,7 @@ budget-ai/
 
 ## ⚙️ Installation Guide
 
-**Prerequisites:** Node.js 18+, MySQL 8+, and an AI API key (free [Groq](https://console.groq.com) key recommended, or an OpenAI key).
+**Prerequisites:** Node.js 18+, MySQL 8+, and a free [Groq](https://console.groq.com) API key (no credit card required).
 
 ```bash
 # 1. Clone
@@ -115,12 +115,9 @@ DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_NAME=budget_ai
 
-# AI provider (OpenAI-compatible)
-# Groq (free):   https://api.groq.com/openai/v1  + model llama-3.3-70b-versatile
-# OpenAI (paid): leave OPENAI_BASE_URL blank      + model gpt-4.1-mini
-OPENAI_BASE_URL=https://api.groq.com/openai/v1
-OPENAI_API_KEY=your_api_key
-OPENAI_MODEL=llama-3.3-70b-versatile
+# Groq (AI provider, free key at https://console.groq.com)
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
 > `.env` is gitignored and never committed.
@@ -166,7 +163,7 @@ Then open **http://localhost:5173**.
 ## 🤖 AI Workflow
 
 ```
-React → Express → OpenAI (interpret only) → VALIDATE → MySQL → React
+React → Express → Groq (interpret only) → VALIDATE → MySQL → React
 ```
 
 1. The user types a message (e.g. *"I spent 500 on pizza"*).

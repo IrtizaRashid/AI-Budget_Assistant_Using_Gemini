@@ -1,10 +1,9 @@
-// Reusable OpenAI service.
+// Reusable AI service (powered by Groq).
 //
-// Its ONLY job: take the user's natural-language message and return a
-// structured intent as a JSON object. It performs NO calculations and NO
-// database work — the backend controller does all of that. The model is
-// constrained (system prompt + json_object response format + temperature 0)
-// to emit ONLY valid JSON.
+// Groq exposes an OpenAI-compatible API, so we use the official `openai` SDK
+// pointed at Groq's endpoint (see config.groq.baseURL). Its job: turn the
+// user's message into a structured JSON intent, and generate recommendations.
+// It performs NO calculations and NO database work — controllers do all that.
 import OpenAI from 'openai';
 import { config } from '../config/env.js';
 
@@ -98,16 +97,16 @@ The "amount" must always be a positive number with no currency symbols or commas
 // server can boot (and serve non-AI routes) even if no key is configured yet.
 let client;
 const getClient = () => {
-  if (!config.openai.apiKey) {
+  if (!config.groq.apiKey) {
     throw new Error(
-      'OPENAI_API_KEY is not set. Add it to backend/.env to use the chat feature.'
+      'GROQ_API_KEY is not set. Add it to backend/.env to use the chat feature.'
     );
   }
   if (!client) {
     // baseURL lets us target any OpenAI-compatible provider (e.g. Groq).
     client = new OpenAI({
-      apiKey: config.openai.apiKey,
-      baseURL: config.openai.baseURL,
+      apiKey: config.groq.apiKey,
+      baseURL: config.groq.baseURL,
       timeout: 15000, // fail fast (15s) instead of hanging the request
       maxRetries: 1, // one automatic retry on transient network errors
     });
@@ -122,7 +121,7 @@ export const interpretMessage = async (message) => {
   let completion;
   try {
     completion = await openai.chat.completions.create({
-      model: config.openai.model,
+      model: config.groq.model,
       temperature: 0, // deterministic, reduces hallucinated formats
       response_format: { type: 'json_object' }, // forces valid JSON output
       messages: [
@@ -177,7 +176,7 @@ export const generateRecommendations = async (summary) => {
   let completion;
   try {
     completion = await openai.chat.completions.create({
-      model: config.openai.model,
+      model: config.groq.model,
       temperature: 0.5, // a little variety in phrasing
       response_format: { type: 'json_object' },
       messages: [
