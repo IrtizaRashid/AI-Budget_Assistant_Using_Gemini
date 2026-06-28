@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getDashboard, getCategories } from '../services/api.js';
 import SummaryCard from '../components/SummaryCard.jsx';
 import CategoryTable from '../components/CategoryTable.jsx';
+import ChatBox from '../components/ChatBox.jsx';
 import { formatPKR } from '../utils/format.js';
 
 export default function Dashboard() {
@@ -97,10 +98,18 @@ export default function Dashboard() {
               />
             </section>
 
-            {/* Category table */}
-            <section className="mt-8">
-              <CategoryTable categories={categories} />
-            </section>
+            {/* Category table + AI chat side by side on desktop, stacked on mobile */}
+            <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+              <section className="lg:col-span-2">
+                <CategoryTable categories={categories} />
+              </section>
+
+              <section className="lg:col-span-1">
+                {/* onExpenseAdded={loadData} re-fetches cards + table after an
+                    expense is added via chat — no page refresh. */}
+                <ChatBox userId={userId} onExpenseAdded={loadData} />
+              </section>
+            </div>
           </>
         )}
       </div>

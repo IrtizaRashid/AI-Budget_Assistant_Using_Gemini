@@ -22,6 +22,18 @@ export const createCategories = async (categories) => {
   return result.affectedRows;
 };
 
+// SELECT a single category for a user by its name (or undefined).
+export const getCategoryByName = async (userId, categoryName) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category_name, allocated_amount, spent_amount
+       FROM budget_categories
+      WHERE user_id = ? AND category_name = ?
+      LIMIT 1`,
+    [userId, categoryName]
+  );
+  return rows[0];
+};
+
 // SELECT all categories for a user (raw stored values).
 export const getCategoriesByUser = async (userId) => {
   const [rows] = await pool.execute(

@@ -16,6 +16,7 @@ import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/users', userRoutes);          // POST /api/users
 app.use('/api/categories', categoryRoutes); // POST /api/categories, GET /api/categories/:userId
 app.use('/api/expenses', expenseRoutes);    // POST /api/expenses,   GET /api/expenses/:userId
 app.use('/api/dashboard', dashboardRoutes); // GET  /api/dashboard/:userId
+app.use('/api', chatRoutes);                // POST /api/chat
 
 // ---- Fallbacks ----
 app.use(notFound);          // Unknown route -> 404
