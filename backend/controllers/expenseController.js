@@ -2,6 +2,7 @@
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import * as expenseService from '../services/expenseService.js';
 import * as categoryService from '../services/categoryService.js';
+import * as userService from '../services/userService.js';
 import { buildBudgetWarning } from '../utils/budgetWarning.js';
 
 // Helper: build the budget warning for a category's CURRENT state.
@@ -14,6 +15,15 @@ const warningFor = async (userId, category) => {
         Number(cat.spent_amount)
       )
     : null;
+};
+
+// Helper: would adding `amount` push total spending past the monthly budget?
+// Used to guarantee the OVERALL remaining budget never goes negative.
+const wouldExceedOverallBudget = async (userId, amount) => {
+  const user = await userService.findUserById(userId);
+  if (!user) return false;
+  const totalSpent = await expenseService.getTotalSpentByUser(userId);
+  return totalSpent + Number(amount) > Number(user.monthly_budget) + 1e-6;
 };
 
 // POST /api/expenses
@@ -97,8 +107,15 @@ export const confirmExpense = asyncHandler(async (req, res) => {
   }
   const description = expense.description || expense.category;
 
-  // Duplicate override: user confirmed "Add Anyway" — insert without re-checking.
+  // Duplicate override: user confirmed "Add Anyway" — insert without re-checking
+  // the duplicate, but still protect the overall budget.
   if (action === 'add_anyway') {
+    if (await wouldExceedOverallBudget(userId, amount)) {
+      return res.status(400).json({
+        error:
+          'This expense would exceed your overall monthly budget. Delete an expense or lower the amount.',
+      });
+    }
     const saved = await expenseService.addExpenseWithCategoryUpdate({
       user_id: userId,
       category: expense.category,
@@ -114,8 +131,15 @@ export const confirmExpense = asyncHandler(async (req, res) => {
     });
   }
 
-  // Option 2: Record as over-budget — insert normally; spent may exceed allocated.
+  // Option 2: Record as over-budget — a category may exceed its allocation,
+  // but only while the OVERALL monthly budget still has room.
   if (action === 'over_budget') {
+    if (await wouldExceedOverallBudget(userId, amount)) {
+      return res.status(400).json({
+        error:
+          'This would exceed your overall monthly budget, so it can’t be recorded as over-budget. Transfer from another category, delete an expense, or cancel.',
+      });
+    }
     const saved = await expenseService.addExpenseWithCategoryUpdate({
       user_id: userId,
       category: expense.category,

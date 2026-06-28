@@ -25,8 +25,9 @@ export default function ConfirmationCard({
   const [outcome, setOutcome] = useState(null); // { text, warning } | { error }
 
   // Categories the user can transfer FROM: not the target, and with funds left.
+  // Categories the user can transfer FROM: not the target, with funds left.
   const funded = categories.filter(
-    (c) => c.category !== expense.category && c.remaining > 0
+    (c) => c.category !== expense.category && Number(c.remaining) > 0
   );
 
   // Calls the backend and records the outcome.
@@ -95,30 +96,37 @@ export default function ConfirmationCard({
 
       {/* Step 1: the three options */}
       {step === 'options' && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setStep('source')}
-            disabled={busy || funded.length === 0}
-            title={funded.length === 0 ? 'No category has spare funds' : ''}
-            className={`${btn} bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:from-fuchsia-500 hover:to-pink-500`}
-          >
-            Transfer Money
-          </button>
-          <button
-            onClick={() => resolve('over_budget')}
-            disabled={busy}
-            className={`${btn} bg-amber-500 text-white hover:bg-amber-600`}
-          >
-            Record as Over Budget
-          </button>
-          <button
-            onClick={() => resolve('cancel')}
-            disabled={busy}
-            className={`${btn} border border-white/20 text-slate-300 hover:bg-white/10`}
-          >
-            Cancel
-          </button>
-        </div>
+        <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setStep('source')}
+              disabled={busy || funded.length === 0}
+              title={funded.length === 0 ? 'No category has spare funds' : ''}
+              className={`${btn} bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:from-fuchsia-500 hover:to-pink-500`}
+            >
+              Transfer Money
+            </button>
+            <button
+              onClick={() => resolve('over_budget')}
+              disabled={busy}
+              className={`${btn} bg-amber-500 text-white hover:bg-amber-600`}
+            >
+              Record as Over Budget
+            </button>
+            <button
+              onClick={() => resolve('cancel')}
+              disabled={busy}
+              className={`${btn} border border-white/20 text-slate-300 hover:bg-white/10`}
+            >
+              Cancel
+            </button>
+          </div>
+          {funded.length === 0 && (
+            <p className="text-xs text-slate-400">
+              No other category has spare funds to transfer from.
+            </p>
+          )}
+        </>
       )}
 
       {/* Step 2: choose a source category to transfer from */}
