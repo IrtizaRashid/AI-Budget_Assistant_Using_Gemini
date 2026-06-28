@@ -74,7 +74,7 @@ export default function ConfirmationCard({
       <div className="space-y-1">
         <p>{outcome.text}</p>
         {outcome.warning && (
-          <p className="font-medium text-red-600">⚠️ {outcome.warning}</p>
+          <p className="font-medium text-red-300">⚠️ {outcome.warning}</p>
         )}
       </div>
     );
@@ -85,13 +85,13 @@ export default function ConfirmationCard({
 
   return (
     <div className="space-y-2">
-      <p className="font-medium text-slate-700">
+      <p className="font-medium text-slate-100">
         ⚠️ {`Your ${expense.category} budget can't cover ${formatPKR(
           expense.amount
         )}.`}
       </p>
 
-      {outcome?.error && <p className="text-red-600">{outcome.error}</p>}
+      {outcome?.error && <p className="text-red-300">{outcome.error}</p>}
 
       {/* Step 1: the three options */}
       {step === 'options' && (
@@ -100,7 +100,7 @@ export default function ConfirmationCard({
             onClick={() => setStep('source')}
             disabled={busy || funded.length === 0}
             title={funded.length === 0 ? 'No category has spare funds' : ''}
-            className={`${btn} bg-indigo-600 text-white hover:bg-indigo-700`}
+            className={`${btn} bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:from-fuchsia-500 hover:to-pink-500`}
           >
             Transfer Money
           </button>
@@ -114,7 +114,7 @@ export default function ConfirmationCard({
           <button
             onClick={() => resolve('cancel')}
             disabled={busy}
-            className={`${btn} border border-slate-300 text-slate-600 hover:bg-slate-50`}
+            className={`${btn} border border-white/20 text-slate-300 hover:bg-white/10`}
           >
             Cancel
           </button>
@@ -124,14 +124,14 @@ export default function ConfirmationCard({
       {/* Step 2: choose a source category to transfer from */}
       {step === 'source' && (
         <div className="space-y-2">
-          <p className="text-slate-600">Which category should the funds come from?</p>
+          <p className="text-slate-300">Which category should the funds come from?</p>
           <div className="flex flex-col gap-2">
             {funded.map((c) => (
               <button
                 key={c.category}
                 onClick={() => resolve('transfer', c.category)}
                 disabled={busy}
-                className={`${btn} border border-slate-300 text-left text-slate-700 hover:bg-slate-50`}
+                className={`${btn} border border-white/20 text-left text-slate-200 hover:bg-white/10`}
               >
                 {c.category}{' '}
                 <span className="text-slate-400">
@@ -143,7 +143,7 @@ export default function ConfirmationCard({
           <button
             onClick={() => setStep('options')}
             disabled={busy}
-            className={`${btn} text-slate-500 hover:bg-slate-50`}
+            className={`${btn} text-slate-400 hover:bg-white/10`}
           >
             ← Back
           </button>

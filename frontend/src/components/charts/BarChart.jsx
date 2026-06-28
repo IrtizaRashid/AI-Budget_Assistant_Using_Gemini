@@ -18,11 +18,17 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 export default function BarChart({ labels, datasets }) {
   const chartData = { labels, datasets };
 
+  const gridColor = 'rgba(255,255,255,0.08)';
+  const tickColor = '#94a3b8';
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+      legend: {
+        position: 'bottom',
+        labels: { boxWidth: 12, padding: 12, color: '#cbd5e1' },
+      },
       tooltip: {
         callbacks: {
           label: (ctx) => `${ctx.dataset.label}: ${formatPKR(ctx.parsed.y)}`,
@@ -30,12 +36,18 @@ export default function BarChart({ labels, datasets }) {
       },
     },
     scales: {
+      x: {
+        ticks: { color: tickColor },
+        grid: { color: gridColor },
+      },
       y: {
         beginAtZero: true,
         ticks: {
+          color: tickColor,
           // Compact axis labels, e.g. 15000 -> "15,000".
           callback: (value) => Number(value).toLocaleString(),
         },
+        grid: { color: gridColor },
       },
     },
   };

@@ -51,22 +51,22 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
       {/* Header + search */}
-      <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">Expense History</h2>
+      <div className="flex flex-col gap-3 border-b border-white/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold text-white">Expense History</h2>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by category, description, date, amount…"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-80"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 sm:w-80"
         />
       </div>
 
       {/* Success / error banner */}
       {message && (
-        <div className="border-b border-slate-100 bg-green-50 px-6 py-2 text-sm text-green-700">
+        <div className="border-b border-white/10 bg-emerald-500/10 px-6 py-2 text-sm text-emerald-300">
           {message}
         </div>
       )}
@@ -74,7 +74,7 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
       {/* Table (scrolls horizontally on small screens) */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-white/5 text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Date</th>
               <th className="px-6 py-3 font-medium">Description</th>
@@ -83,27 +83,27 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
               <th className="px-6 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-white/5">
             {filtered.map((e) => (
-              <tr key={e.id} className="transition hover:bg-slate-50">
-                <td className="px-6 py-4 text-slate-500">
+              <tr key={e.id} className="transition hover:bg-white/5">
+                <td className="px-6 py-4 text-slate-400">
                   {formatDate(e.expense_date)}
                 </td>
-                <td className="px-6 py-4 font-medium text-slate-700">
+                <td className="px-6 py-4 font-medium text-slate-200">
                   {e.description || '—'}
                 </td>
                 <td className="px-6 py-4">
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                  <span className="rounded-full bg-fuchsia-500/15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
                     {e.category}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right font-semibold text-slate-700">
+                <td className="px-6 py-4 text-right font-semibold text-slate-100">
                   {formatPKR(e.amount)}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => setPendingDelete(e)}
-                    className="rounded-lg px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                    className="rounded-lg px-3 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
                   >
                     Delete
                   </button>
@@ -116,12 +116,12 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
 
       {/* Empty states */}
       {expenses.length === 0 && (
-        <p className="px-6 py-10 text-center text-slate-400">
+        <p className="px-6 py-10 text-center text-slate-500">
           No expenses yet. Add one using the AI Assistant.
         </p>
       )}
       {expenses.length > 0 && filtered.length === 0 && (
-        <p className="px-6 py-10 text-center text-slate-400">
+        <p className="px-6 py-10 text-center text-slate-500">
           No expenses match “{query}”.
         </p>
       )}

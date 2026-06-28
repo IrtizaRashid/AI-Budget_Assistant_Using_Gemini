@@ -19,14 +19,14 @@ import PieChart from '../components/charts/PieChart.jsx';
 import BarChart from '../components/charts/BarChart.jsx';
 import { formatPKR } from '../utils/format.js';
 
-// Fixed colour palette so each category looks the same across all charts.
+// Vibrant neon palette so each category looks the same across all charts.
 const CATEGORY_COLORS = [
-  '#6366f1', // indigo
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#ef4444', // red
+  '#d946ef', // fuchsia
+  '#ec4899', // pink
+  '#a855f7', // purple
   '#8b5cf6', // violet
-  '#06b6d4', // cyan
+  '#22d3ee', // cyan
+  '#f59e0b', // amber
 ];
 
 export default function Dashboard() {
@@ -142,7 +142,12 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="relative min-h-screen overflow-hidden bg-[#0b0712]">
+      {/* Decorative neon background blobs */}
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/25 blur-[120px] animate-blob" />
+      <div className="pointer-events-none absolute right-0 top-40 h-96 w-96 rounded-full bg-purple-600/25 blur-[120px] animate-blob delay-200" />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-pink-600/20 blur-[120px] animate-blob delay-300" />
+
       {/* Budget warning toasts (fixed, top-right, auto-dismiss) */}
       <div className="fixed right-4 top-4 z-50 w-80 max-w-[90vw] space-y-2">
         {warnings.map((w) => (
@@ -155,40 +160,47 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-10">
+      <div className="relative mx-auto max-w-6xl px-4 py-10">
         {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">
-            Welcome to your Budget Dashboard
-          </h1>
-          <p className="mt-1 text-slate-500">
-            Here&apos;s an overview of your monthly budget.
-          </p>
+        <header className="mb-8 animate-fade-in-up">
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-xl shadow-lg shadow-fuchsia-500/40">
+              💸
+            </span>
+            <div>
+              <h1 className="bg-gradient-to-r from-fuchsia-400 via-pink-400 to-purple-400 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent text-glow sm:text-3xl">
+                Your Budget Dashboard
+              </h1>
+              <p className="text-sm text-slate-400">
+                Track, manage, and get smart advice on your spending.
+              </p>
+            </div>
+          </div>
         </header>
 
         {/* ---- Loading state ---- */}
         {loading && (
-          <div className="flex items-center justify-center rounded-2xl bg-white py-20 shadow-sm ring-1 ring-slate-200/70">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-500" />
-            <span className="ml-3 text-slate-500">Loading your dashboard…</span>
+          <div className="flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] py-20 backdrop-blur-sm">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+            <span className="ml-3 text-slate-400">Loading your dashboard…</span>
           </div>
         )}
 
         {/* ---- Error state ---- */}
         {!loading && error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-            <p className="text-red-700">{error}</p>
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center backdrop-blur-sm">
+            <p className="text-red-300">{error}</p>
             <div className="mt-4 flex justify-center gap-3">
               <button
                 onClick={() => loadData()}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                className="rounded-lg bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white transition hover:from-fuchsia-500 hover:to-pink-500"
               >
                 Retry
               </button>
               {/* If the user has no budget yet, send them to setup. */}
               <button
                 onClick={() => navigate('/')}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
               >
                 Go to Budget Setup
               </button>
@@ -200,31 +212,35 @@ export default function Dashboard() {
         {!loading && !error && summary && (
           <>
             {/* Summary cards: stacked on mobile, 2-up on tablet, 4-up on desktop */}
-            <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <section className="grid animate-fade-in-up grid-cols-1 gap-5 delay-100 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
                 label="Monthly Budget"
                 value={formatPKR(summary.monthlyBudget)}
-                accent="bg-indigo-500"
+                icon="💰"
+                gradient="from-fuchsia-500 to-purple-600"
               />
               <SummaryCard
                 label="Total Spent"
                 value={formatPKR(summary.totalSpent)}
-                accent="bg-amber-500"
+                icon="💸"
+                gradient="from-pink-500 to-rose-600"
               />
               <SummaryCard
                 label="Remaining Budget"
                 value={formatPKR(summary.remainingBudget)}
-                accent="bg-emerald-500"
+                icon="🏦"
+                gradient="from-violet-500 to-fuchsia-600"
               />
               <SummaryCard
                 label="Total Expenses"
                 value={stats ? stats.expenseCount : 0}
-                accent="bg-cyan-500"
+                icon="📊"
+                gradient="from-cyan-500 to-blue-600"
               />
             </section>
 
             {/* AI Recommendations (auto-refreshes when expenses change) */}
-            <section className="mt-8">
+            <section className="mt-8 animate-fade-in-up delay-200">
               <AIRecommendations
                 recommendations={recommendations}
                 loading={recLoading}
@@ -233,7 +249,7 @@ export default function Dashboard() {
             </section>
 
             {/* Charts */}
-            <section className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <section className="mt-8 grid animate-fade-in-up grid-cols-1 gap-8 delay-300 lg:grid-cols-2">
               <ChartCard
                 title="Budget Allocation"
                 isEmpty={catLabels.length === 0}

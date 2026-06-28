@@ -22,7 +22,7 @@ export default function PieChart({ labels, data, colors }) {
       {
         data,
         backgroundColor: colors,
-        borderColor: '#ffffff',
+        borderColor: '#130d1d',
         borderWidth: 2,
       },
     ],
@@ -32,7 +32,10 @@ export default function PieChart({ labels, data, colors }) {
     responsive: true,
     maintainAspectRatio: false, // lets the fixed-height container control size
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+      legend: {
+        position: 'bottom',
+        labels: { boxWidth: 12, padding: 12, color: '#cbd5e1' },
+      },
       tooltip: {
         callbacks: {
           // Show "Food: PKR 15,000" in tooltips.

@@ -133,13 +133,22 @@ export default function BudgetSetup() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-xl rounded-2xl bg-white p-8 shadow-lg">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0712] px-4 py-10">
+      {/* Decorative neon blobs */}
+      <div className="pointer-events-none absolute -left-24 top-0 h-96 w-96 rounded-full bg-fuchsia-600/25 blur-[120px] animate-blob" />
+      <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-purple-600/25 blur-[120px] animate-blob delay-200" />
+
+      <div className="relative w-full max-w-xl animate-fade-in-up rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
         {/* Header */}
-        <h1 className="text-center text-2xl font-bold text-slate-800">
+        <div className="mb-3 flex justify-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-2xl shadow-lg shadow-fuchsia-500/40">
+            💸
+          </span>
+        </div>
+        <h1 className="bg-gradient-to-r from-fuchsia-400 via-pink-400 to-purple-400 bg-clip-text text-center text-2xl font-extrabold tracking-tight text-transparent text-glow">
           AI Personal Budget Assistant
         </h1>
-        <p className="mt-2 text-center text-slate-500">
+        <p className="mt-2 text-center text-slate-400">
           Let&apos;s set up your monthly budget.
         </p>
 
@@ -151,7 +160,7 @@ export default function BudgetSetup() {
           {step === 'input' && (
             <>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-600">
+                <label className="mb-1 block text-sm font-medium text-slate-300">
                   Your Name
                 </label>
                 <input
@@ -159,12 +168,12 @@ export default function BudgetSetup() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Irtiza"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-600">
+                <label className="mb-1 block text-sm font-medium text-slate-300">
                   Monthly Budget (PKR)
                 </label>
                 <input
@@ -173,15 +182,15 @@ export default function BudgetSetup() {
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
                   placeholder="e.g. 50000"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
                 />
               </div>
 
               <button
                 onClick={handleContinue}
-                className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700"
+                className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 font-semibold text-white shadow-md transition hover:from-indigo-700 hover:to-violet-700 hover:shadow-lg active:scale-[0.99]"
               >
-                Continue
+                Continue →
               </button>
             </>
           )}
@@ -189,9 +198,9 @@ export default function BudgetSetup() {
           {/* ---------- STEP 2: RECOMMENDATIONS ---------- */}
           {step === 'recommend' && (
             <>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-400">
                 Here&apos;s a recommended split for{' '}
-                <span className="font-semibold text-slate-700">
+                <span className="font-semibold text-fuchsia-300">
                   {budgetNumber.toLocaleString()} PKR
                 </span>
                 . You can edit any amount before saving.
@@ -208,16 +217,16 @@ export default function BudgetSetup() {
                 <button
                   onClick={handleBack}
                   disabled={loading}
-                  className="flex-1 rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+                  className="flex-1 rounded-xl border border-white/15 px-4 py-3 font-semibold text-slate-300 transition hover:bg-white/10 disabled:opacity-60"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleAccept}
                   disabled={loading}
-                  className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-3 font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? 'Saving…' : 'Accept Budget'}
+                  {loading ? 'Saving…' : 'Accept Budget ✓'}
                 </button>
               </div>
             </>

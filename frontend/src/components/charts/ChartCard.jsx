@@ -13,10 +13,10 @@ export default function ChartCard({
   children,
 }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-      <h3 className="mb-4 text-base font-semibold text-slate-800">{title}</h3>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+      <h3 className="mb-4 text-base font-semibold text-white">{title}</h3>
       {isEmpty ? (
-        <div className="flex h-64 items-center justify-center text-center text-sm text-slate-400">
+        <div className="flex h-64 items-center justify-center text-center text-sm text-slate-500">
           {emptyMessage}
         </div>
       ) : (

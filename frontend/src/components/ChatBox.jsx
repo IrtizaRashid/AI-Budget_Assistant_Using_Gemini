@@ -3,6 +3,7 @@ import { sendChatMessage } from '../services/chatService.js';
 import { formatPKR } from '../utils/format.js';
 import ConfirmationCard from './ConfirmationCard.jsx';
 import DuplicateCard from './DuplicateCard.jsx';
+import VoiceInput from './VoiceInput.jsx';
 
 // Turn the backend's structured response into a friendly assistant message.
 // (The backend does the logic; the frontend only formats for display.)
@@ -88,6 +89,8 @@ export default function ChatBox({
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // Speech Synthesis: read AI replies aloud when ON.
+  const [speakResponses, setSpeakResponses] = useState(false);
 
   // Ref to the bottom of the list so we can auto-scroll on new messages.
   const bottomRef = useRef(null);
@@ -95,8 +98,19 @@ export default function ChatBox({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const handleSend = async () => {
-    const text = input.trim();
+  // Read text aloud with the browser's Speech Synthesis API.
+  const speak = (text) => {
+    if (!window.speechSynthesis || !text) return;
+    window.speechSynthesis.cancel(); // stop anything already speaking
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Core send routine — accepts the text directly so it works for both typed
+  // input AND voice transcripts (avoids relying on async state updates).
+  const sendMessage = async (rawText) => {
+    const text = (rawText ?? '').trim();
     if (!text || loading) return;
 
     // Show the user's message immediately and clear the input.
@@ -126,7 +140,11 @@ export default function ChatBox({
         return;
       }
 
-      setMessages((prev) => [...prev, buildAssistantMessage(data)]);
+      const assistantMsg = buildAssistantMessage(data);
+      setMessages((prev) => [...prev, assistantMsg]);
+
+      // Optionally read the reply aloud.
+      if (speakResponses) speak(assistantMsg.text);
 
       // If the data changed (expense added or deleted), refresh the
       // dashboard, category table and expense history (no page reload).
@@ -153,6 +171,22 @@ export default function ChatBox({
     }
   };
 
+  const handleSend = () => sendMessage(input);
+
+  // Voice transcript -> show it in the box, then send automatically.
+  const handleVoiceResult = (transcript) => {
+    setInput(transcript);
+    sendMessage(transcript);
+  };
+
+  // Surface voice errors as a friendly assistant message.
+  const handleVoiceError = (message) => {
+    setMessages((prev) => [
+      ...prev,
+      { role: 'assistant', text: `🎤 ${message}`, isError: true },
+    ]);
+  };
+
   // Send on Enter (Shift+Enter could be used for newlines if it were a textarea).
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -162,11 +196,35 @@ export default function ChatBox({
   };
 
   return (
-    <div className="flex h-[28rem] flex-col rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
+    <div className="flex h-[28rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
       {/* Header */}
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">AI Assistant</h2>
-        <p className="text-xs text-slate-400">Manage your budget in plain English</p>
+      <div className="flex items-start justify-between gap-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 px-6 py-4 shadow-lg shadow-fuchsia-500/20">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+            <span>🤖</span> AI Assistant
+          </h2>
+          <p className="text-xs text-pink-100">
+            Type or speak in plain English
+          </p>
+        </div>
+
+        {/* Voice Responses toggle (Speech Synthesis) */}
+        <button
+          type="button"
+          onClick={() => {
+            // When turning off, stop any current narration.
+            if (speakResponses) window.speechSynthesis?.cancel();
+            setSpeakResponses((v) => !v);
+          }}
+          title="Read AI replies aloud"
+          className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition ${
+            speakResponses
+              ? 'bg-white text-fuchsia-700'
+              : 'bg-white/20 text-white hover:bg-white/30'
+          }`}
+        >
+          🔊 {speakResponses ? 'ON' : 'OFF'}
+        </button>
       </div>
 
       {/* Scrollable chat history */}
@@ -181,10 +239,10 @@ export default function ChatBox({
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                 msg.role === 'user'
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white'
                   : msg.isError
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-slate-100 text-slate-700'
+                  ? 'bg-red-500/15 text-red-300'
+                  : 'bg-white/10 text-slate-200'
               }`}
             >
               {/* Interactive cards (insufficient budget / duplicate) */}
@@ -213,7 +271,7 @@ export default function ChatBox({
                   {msg.expenses.map((e) => (
                     <li
                       key={e.id}
-                      className="flex justify-between gap-4 border-t border-slate-200 pt-1 text-xs"
+                      className="flex justify-between gap-4 border-t border-white/10 pt-1 text-xs"
                     >
                       <span>
                         {e.category}
@@ -231,11 +289,11 @@ export default function ChatBox({
         {/* Loading indicator */}
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-slate-100 px-4 py-2 text-sm text-slate-500">
+            <div className="rounded-2xl bg-white/10 px-4 py-2 text-sm">
               <span className="inline-flex gap-1">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400 [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-pink-400 [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-purple-400" />
               </span>
             </div>
           </div>
@@ -244,21 +302,28 @@ export default function ChatBox({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input + Send */}
-      <div className="flex gap-2 border-t border-slate-100 p-3">
+      {/* Input + Voice + Send */}
+      <div className="flex items-center gap-2 border-t border-white/10 p-3">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message…"
+          placeholder="Type or speak a message…"
           disabled={loading}
-          className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-50"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-50"
+        />
+
+        {/* Microphone (Web Speech API) */}
+        <VoiceInput
+          onResult={handleVoiceResult}
+          onError={handleVoiceError}
+          disabled={loading}
         />
         <button
           onClick={handleSend}
           disabled={loading || !input.trim()}
-          className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white shadow shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Send
         </button>

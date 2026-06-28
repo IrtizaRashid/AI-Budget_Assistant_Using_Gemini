@@ -11,16 +11,14 @@ export default function CategoryTable({ categories }) {
   const exceeded = categories.filter((c) => c.remaining < 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">
-          Budget Categories
-        </h2>
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
+      <div className="border-b border-white/10 px-6 py-4">
+        <h2 className="text-lg font-semibold text-white">Budget Categories</h2>
       </div>
 
       {/* Over-budget warning banner */}
       {exceeded.length > 0 && (
-        <div className="border-b border-red-100 bg-red-50 px-6 py-2 text-sm text-red-700">
+        <div className="border-b border-red-500/20 bg-red-500/10 px-6 py-2 text-sm text-red-300">
           {exceeded.map((c) => (
             <p key={c.category}>
               ⚠️ {c.category} budget exceeded by {formatPKR(Math.abs(c.remaining))}.
@@ -31,7 +29,7 @@ export default function CategoryTable({ categories }) {
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[480px] text-left text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-white/5 text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Category</th>
               <th className="px-6 py-3 text-right font-medium">Allocated</th>
@@ -39,26 +37,26 @@ export default function CategoryTable({ categories }) {
               <th className="px-6 py-3 text-right font-medium">Remaining</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-white/5">
             {categories.map((c) => {
               // Highlight categories nearing / over their limit.
               const pct = c.allocated > 0 ? (c.remaining / c.allocated) * 100 : 100;
-              let remainColor = 'text-emerald-600';
+              let remainColor = 'text-emerald-400';
               let badge = null;
               if (c.remaining < 0) {
-                remainColor = 'text-red-600';
-                badge = { text: 'Over', cls: 'bg-red-100 text-red-700' };
+                remainColor = 'text-red-400';
+                badge = { text: 'Over', cls: 'bg-red-500/20 text-red-300' };
               } else if (pct < 10) {
-                remainColor = 'text-orange-600';
-                badge = { text: 'Critical', cls: 'bg-orange-100 text-orange-700' };
+                remainColor = 'text-orange-400';
+                badge = { text: 'Critical', cls: 'bg-orange-500/20 text-orange-300' };
               } else if (pct < 20) {
-                remainColor = 'text-amber-600';
-                badge = { text: 'Low', cls: 'bg-amber-100 text-amber-700' };
+                remainColor = 'text-amber-400';
+                badge = { text: 'Low', cls: 'bg-amber-500/20 text-amber-300' };
               }
 
               return (
-                <tr key={c.category} className="transition hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-700">
+                <tr key={c.category} className="transition hover:bg-white/5">
+                  <td className="px-6 py-4 font-medium text-slate-200">
                     {c.category}
                     {badge && (
                       <span
@@ -68,13 +66,13 @@ export default function CategoryTable({ categories }) {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right text-slate-600">
+                  <td className="px-6 py-4 text-right text-slate-400">
                     {formatPKR(c.allocated)}
                   </td>
-                  <td className="px-6 py-4 text-right text-slate-600">
+                  <td className="px-6 py-4 text-right text-slate-400">
                     {formatPKR(c.spent)}
                   </td>
-                  {/* Remaining is coloured by severity (green/amber/orange/red) */}
+                  {/* Remaining is coloured by severity */}
                   <td className={`px-6 py-4 text-right font-semibold ${remainColor}`}>
                     {formatPKR(c.remaining)}
                   </td>
@@ -87,7 +85,7 @@ export default function CategoryTable({ categories }) {
 
       {/* Friendly empty state */}
       {categories.length === 0 && (
-        <p className="px-6 py-10 text-center text-slate-400">
+        <p className="px-6 py-10 text-center text-slate-500">
           No categories found for this user.
         </p>
       )}

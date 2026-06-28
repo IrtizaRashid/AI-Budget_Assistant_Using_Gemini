@@ -50,24 +50,24 @@ export default function DuplicateCard({ userId, expense, onChanged, onWarning })
 
   return (
     <div className="space-y-2">
-      <p className="font-medium text-slate-700">
+      <p className="font-medium text-slate-100">
         ⚠️ A similar expense was found. Would you like to continue?
       </p>
 
-      {outcome?.error && <p className="text-red-600">{outcome.error}</p>}
+      {outcome?.error && <p className="text-red-300">{outcome.error}</p>}
 
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => resolve('add_anyway')}
           disabled={busy}
-          className={`${btn} bg-indigo-600 text-white hover:bg-indigo-700`}
+          className={`${btn} bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:from-fuchsia-500 hover:to-pink-500`}
         >
           Add Anyway
         </button>
         <button
           onClick={() => resolve('cancel')}
           disabled={busy}
-          className={`${btn} border border-slate-300 text-slate-600 hover:bg-slate-50`}
+          className={`${btn} border border-white/20 text-slate-300 hover:bg-white/10`}
         >
           Cancel
         </button>
