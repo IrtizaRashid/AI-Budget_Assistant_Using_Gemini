@@ -27,15 +27,20 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ---- Global middleware ----
-// Restrict CORS to the configured frontend origin(s). Requests with no Origin
-// (e.g. curl, health checks) are allowed so platform probes keep working.
+// Allow the configured frontend origin(s), plus any *.vercel.app deployment
+// (production + preview URLs change, so we don't hardcode them). Requests with
+// no Origin (curl, health checks, same-origin) are allowed too. Disallowed
+// origins are denied gracefully (no CORS headers) rather than throwing a 500.
+const isAllowedOrigin = (origin) =>
+  config.corsOrigins.includes(origin) || /\.vercel\.app$/.test(origin);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || config.corsOrigins.includes(origin)) {
+      if (!origin || isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-      return callback(new Error('Not allowed by CORS'));
+      return callback(null, false); // deny without erroring
     },
   })
 );
