@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { sendChatMessage } from '../services/chatService.js';
 import { formatPKR } from '../utils/format.js';
+import ConfirmationCard from './ConfirmationCard.jsx';
 
 // Turn the backend's structured response into a friendly assistant message.
 // (The backend does the logic; the frontend only formats for display.)
@@ -68,9 +69,10 @@ const buildAssistantMessage = (data) => {
 
 // Props:
 //   userId         : current user's id
+//   categories     : current categories (used by the over-budget transfer flow)
 //   onDataChanged  : callback to refresh the dashboard after any change
 //                    (expense added OR deleted)
-export default function ChatBox({ userId, onDataChanged }) {
+export default function ChatBox({ userId, categories = [], onDataChanged }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -97,6 +99,17 @@ export default function ChatBox({ userId, onDataChanged }) {
 
     try {
       const data = await sendChatMessage(userId, text);
+
+      // Insufficient category budget — show the interactive confirmation card
+      // instead of a normal text reply. No expense is inserted yet.
+      if (data.status === 'confirmation_required') {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', type: 'confirmation', expense: data.expense },
+        ]);
+        return;
+      }
+
       setMessages((prev) => [...prev, buildAssistantMessage(data)]);
 
       // If the data changed (expense added or deleted), refresh the
@@ -153,7 +166,17 @@ export default function ChatBox({ userId, onDataChanged }) {
                   : 'bg-slate-100 text-slate-700'
               }`}
             >
-              <p>{msg.text}</p>
+              {/* Interactive insufficient-budget confirmation card */}
+              {msg.type === 'confirmation' ? (
+                <ConfirmationCard
+                  userId={userId}
+                  expense={msg.expense}
+                  categories={categories}
+                  onChanged={onDataChanged}
+                />
+              ) : (
+                <p>{msg.text}</p>
+              )}
 
               {/* Optional expense list for the show_expenses intent */}
               {msg.expenses && msg.expenses.length > 0 && (

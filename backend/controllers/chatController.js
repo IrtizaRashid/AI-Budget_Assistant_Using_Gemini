@@ -73,11 +73,37 @@ export const chat = asyncHandler(async (req, res) => {
           .json({ error: 'The amount must be greater than zero.' });
       }
 
-      // Insert expense + update spent_amount (transaction).
+      const amt = Number(amount);
+
+      // --- Insufficient category budget check ---
+      // If the category doesn't have enough remaining, DO NOT insert.
+      // Ask the user how to proceed instead (transfer / over-budget / cancel).
+      const cat = await categoryService.getCategoryByName(userId, category);
+      const remaining = cat
+        ? Number(cat.allocated_amount) - Number(cat.spent_amount)
+        : Infinity; // no category row -> nothing to exhaust
+
+      if (amt > remaining) {
+        return res.status(200).json({
+          status: 'confirmation_required',
+          message:
+            remaining <= 0
+              ? `Your ${category} budget has been exhausted.`
+              : `Your ${category} budget only has ${remaining} remaining.`,
+          expense: { category, amount: amt, description: description || category },
+          options: [
+            { id: 1, title: 'Transfer money from another category' },
+            { id: 2, title: 'Record as an over-budget expense' },
+            { id: 3, title: 'Cancel this expense' },
+          ],
+        });
+      }
+
+      // Enough budget — insert expense + update spent_amount (transaction).
       const expense = await expenseService.addExpenseWithCategoryUpdate({
         user_id: userId,
         category,
-        amount: Number(amount),
+        amount: amt,
         description: description || category,
       });
 
@@ -85,7 +111,7 @@ export const chat = asyncHandler(async (req, res) => {
         intent: 'add_expense',
         success: true,
         category,
-        amount: Number(amount),
+        amount: amt,
         description: expense.description,
         expense,
       });

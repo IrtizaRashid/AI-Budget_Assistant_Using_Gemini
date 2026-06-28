@@ -9,3 +9,21 @@ export const sendChatMessage = async (userId, message) => {
   const { data } = await api.post('/chat', { userId, message });
   return data;
 };
+
+// POST /api/expenses/confirm
+// Resolves an over-budget expense after the user picks an option.
+// action = 'transfer' | 'over_budget' | 'cancel'
+export const confirmExpenseAction = async ({
+  userId,
+  action,
+  expense,
+  fromCategory,
+}) => {
+  const { data } = await api.post('/expenses/confirm', {
+    userId,
+    action,
+    expense,
+    fromCategory,
+  });
+  return data;
+};

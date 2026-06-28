@@ -215,7 +215,11 @@ export default function Dashboard() {
               <section className="lg:col-span-1">
                 {/* Silent refresh after chat add/delete — no page reload,
                     chat history preserved. */}
-                <ChatBox userId={userId} onDataChanged={refresh} />
+                <ChatBox
+                  userId={userId}
+                  categories={categories}
+                  onDataChanged={refresh}
+                />
               </section>
             </div>
 

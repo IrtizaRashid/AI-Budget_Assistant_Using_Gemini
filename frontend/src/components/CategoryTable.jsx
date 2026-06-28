@@ -7,6 +7,9 @@ import { formatPKR } from '../utils/format.js';
 // Props:
 //   categories : [{ category, allocated, spent, remaining }]
 export default function CategoryTable({ categories }) {
+  // Categories whose spending has exceeded their allocation (remaining < 0).
+  const exceeded = categories.filter((c) => c.remaining < 0);
+
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
       <div className="border-b border-slate-100 px-6 py-4">
@@ -14,6 +17,17 @@ export default function CategoryTable({ categories }) {
           Budget Categories
         </h2>
       </div>
+
+      {/* Over-budget warning banner */}
+      {exceeded.length > 0 && (
+        <div className="border-b border-red-100 bg-red-50 px-6 py-2 text-sm text-red-700">
+          {exceeded.map((c) => (
+            <p key={c.category}>
+              ⚠️ {c.category} budget exceeded by {formatPKR(Math.abs(c.remaining))}.
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[480px] text-left text-sm">
@@ -37,7 +51,12 @@ export default function CategoryTable({ categories }) {
                 <td className="px-6 py-4 text-right text-slate-600">
                   {formatPKR(c.spent)}
                 </td>
-                <td className="px-6 py-4 text-right font-semibold text-emerald-600">
+                {/* Negative remaining (over budget) is highlighted in red */}
+                <td
+                  className={`px-6 py-4 text-right font-semibold ${
+                    c.remaining < 0 ? 'text-red-600' : 'text-emerald-600'
+                  }`}
+                >
                   {formatPKR(c.remaining)}
                 </td>
               </tr>

@@ -135,6 +135,89 @@ export const deleteExpenseWithCategoryUpdate = async (expenseId) => {
   }
 };
 
+// Transfer budget allocation from one category to another, then record the
+// expense — all in a single transaction. Used when a category has run out of
+// budget and the user chooses to cover the expense from another category.
+//
+// Steps: validate source funds -> move allocation -> insert expense -> bump
+// spent on the target. Throws an error with code 'INSUFFICIENT_FUNDS' if the
+// source can't cover the amount.
+export const transferFundsAndAddExpense = async ({
+  user_id,
+  toCategory,
+  fromCategory,
+  amount,
+  description = null,
+}) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. Lock + read the source category and validate it has enough remaining.
+    const [srcRows] = await connection.execute(
+      `SELECT allocated_amount, spent_amount
+         FROM budget_categories
+        WHERE user_id = ? AND category_name = ?
+        FOR UPDATE`,
+      [user_id, fromCategory]
+    );
+    const src = srcRows[0];
+    if (!src) {
+      const e = new Error(`Source category "${fromCategory}" not found.`);
+      e.code = 'INSUFFICIENT_FUNDS';
+      throw e;
+    }
+    const srcRemaining = Number(src.allocated_amount) - Number(src.spent_amount);
+    if (srcRemaining < amount) {
+      const e = new Error(
+        `${fromCategory} only has ${srcRemaining} available; cannot transfer ${amount}.`
+      );
+      e.code = 'INSUFFICIENT_FUNDS';
+      throw e;
+    }
+
+    // 2. Move the allocation from source -> target.
+    await connection.execute(
+      `UPDATE budget_categories SET allocated_amount = allocated_amount - ?
+        WHERE user_id = ? AND category_name = ?`,
+      [amount, user_id, fromCategory]
+    );
+    await connection.execute(
+      `UPDATE budget_categories SET allocated_amount = allocated_amount + ?
+        WHERE user_id = ? AND category_name = ?`,
+      [amount, user_id, toCategory]
+    );
+
+    // 3. Insert the expense against the target category.
+    const [ins] = await connection.execute(
+      `INSERT INTO expenses (user_id, category, amount, description)
+       VALUES (?, ?, ?, ?)`,
+      [user_id, toCategory, amount, description]
+    );
+
+    // 4. Bump the target category's spent_amount.
+    await connection.execute(
+      `UPDATE budget_categories SET spent_amount = spent_amount + ?
+        WHERE user_id = ? AND category_name = ?`,
+      [amount, user_id, toCategory]
+    );
+
+    await connection.commit();
+
+    const [rows] = await connection.execute(
+      `SELECT id, user_id, category, amount, description, expense_date
+         FROM expenses WHERE id = ?`,
+      [ins.insertId]
+    );
+    return rows[0];
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 // SELECT expenses for a user filtered by category, latest first.
 export const getExpensesByCategory = async (userId, category) => {
   const [rows] = await pool.execute(
