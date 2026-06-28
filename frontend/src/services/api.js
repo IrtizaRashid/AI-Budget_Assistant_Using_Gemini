@@ -50,4 +50,11 @@ export const deleteExpense = async (expenseId) => {
   return data;
 };
 
+// GET /api/statistics/:userId
+// -> { allocated[], spent[], remaining[], expenseCount }
+export const getStatistics = async (userId) => {
+  const { data } = await api.get(`/statistics/${userId}`);
+  return data;
+};
+
 export default api;

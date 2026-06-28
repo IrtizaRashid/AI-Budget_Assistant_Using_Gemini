@@ -182,3 +182,12 @@ export const getTotalSpentByUser = async (userId) => {
   // mysql2 returns DECIMAL/SUM as a string — convert to a real number.
   return Number(rows[0].totalSpent);
 };
+
+// COUNT of expense records for a user (returns a Number).
+export const getExpenseCountByUser = async (userId) => {
+  const [rows] = await pool.execute(
+    'SELECT COUNT(*) AS count FROM expenses WHERE user_id = ?',
+    [userId]
+  );
+  return Number(rows[0].count);
+};

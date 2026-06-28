@@ -1,10 +1,29 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getDashboard, getCategories, getExpenses } from '../services/api.js';
+import {
+  getDashboard,
+  getCategories,
+  getExpenses,
+  getStatistics,
+} from '../services/api.js';
 import SummaryCard from '../components/SummaryCard.jsx';
 import CategoryTable from '../components/CategoryTable.jsx';
 import ChatBox from '../components/ChatBox.jsx';
 import ExpenseHistory from '../components/ExpenseHistory.jsx';
+import RecentExpenses from '../components/RecentExpenses.jsx';
+import ChartCard from '../components/charts/ChartCard.jsx';
+import PieChart from '../components/charts/PieChart.jsx';
+import BarChart from '../components/charts/BarChart.jsx';
 import { formatPKR } from '../utils/format.js';
+
+// Fixed colour palette so each category looks the same across all charts.
+const CATEGORY_COLORS = [
+  '#6366f1', // indigo
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+];
 
 export default function Dashboard() {
   // The current user's id is saved to localStorage after budget setup (Step 3).
@@ -14,26 +33,29 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null); // { monthlyBudget, totalSpent, remainingBudget }
   const [categories, setCategories] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [stats, setStats] = useState(null); // { allocated[], spent[], remaining[], expenseCount }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Load all three endpoints in parallel.
+  // Load all endpoints in parallel.
   // `silent = true` refreshes data WITHOUT toggling the full-page spinner,
   // so the ChatBox stays mounted (chat history is preserved) after an
-  // expense is added or deleted.
+  // expense is added or deleted. This is what keeps the CHARTS auto-updating.
   const loadData = useCallback(
     async (silent = false) => {
       try {
         if (!silent) setLoading(true);
         setError('');
-        const [dash, cats, exps] = await Promise.all([
+        const [dash, cats, exps, statistics] = await Promise.all([
           getDashboard(userId),
           getCategories(userId),
           getExpenses(userId),
+          getStatistics(userId),
         ]);
         setSummary(dash);
         setCategories(cats);
         setExpenses(exps);
+        setStats(statistics);
       } catch (err) {
         setError(
           err.response?.data?.error ||
@@ -54,9 +76,23 @@ export default function Dashboard() {
     loadData();
   }, [loadData]);
 
+  // --- Prepare chart data from the statistics payload ---
+  const catLabels = stats ? stats.allocated.map((a) => a.category) : [];
+  const allocatedData = stats ? stats.allocated.map((a) => a.amount) : [];
+  const spentData = stats ? stats.spent.map((s) => s.amount) : [];
+  const remainingData = stats ? stats.remaining.map((r) => r.amount) : [];
+  const totalSpentSum = spentData.reduce((sum, n) => sum + n, 0);
+
+  // Grouped bars: Allocated vs Spent vs Remaining per category.
+  const barDatasets = [
+    { label: 'Allocated', data: allocatedData, backgroundColor: '#6366f1' },
+    { label: 'Spent', data: spentData, backgroundColor: '#f59e0b' },
+    { label: 'Remaining', data: remainingData, backgroundColor: '#10b981' },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-10">
+      <div className="mx-auto max-w-6xl px-4 py-10">
         {/* Header */}
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">
@@ -91,8 +127,8 @@ export default function Dashboard() {
         {/* ---- Loaded content ---- */}
         {!loading && !error && summary && (
           <>
-            {/* Summary cards: 1 column on mobile, 3 across on desktop */}
-            <section className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {/* Summary cards: stacked on mobile, 2-up on tablet, 4-up on desktop */}
+            <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
                 label="Monthly Budget"
                 value={formatPKR(summary.monthlyBudget)}
@@ -108,6 +144,54 @@ export default function Dashboard() {
                 value={formatPKR(summary.remainingBudget)}
                 accent="bg-emerald-500"
               />
+              <SummaryCard
+                label="Total Expenses"
+                value={stats ? stats.expenseCount : 0}
+                accent="bg-cyan-500"
+              />
+            </section>
+
+            {/* Charts */}
+            <section className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <ChartCard
+                title="Budget Allocation"
+                isEmpty={catLabels.length === 0}
+                emptyMessage="No budget set up yet."
+              >
+                <PieChart
+                  labels={catLabels}
+                  data={allocatedData}
+                  colors={CATEGORY_COLORS}
+                />
+              </ChartCard>
+
+              <ChartCard
+                title="Spending by Category"
+                isEmpty={totalSpentSum === 0}
+                emptyMessage="No spending recorded yet."
+              >
+                <PieChart
+                  labels={catLabels}
+                  data={spentData}
+                  colors={CATEGORY_COLORS}
+                />
+              </ChartCard>
+
+              {/* Bar chart spans the full width on desktop */}
+              <div className="lg:col-span-2">
+                <ChartCard
+                  title="Allocated vs Spent vs Remaining"
+                  isEmpty={catLabels.length === 0}
+                  emptyMessage="No budget set up yet."
+                >
+                  <BarChart labels={catLabels} datasets={barDatasets} />
+                </ChartCard>
+              </div>
+            </section>
+
+            {/* Recent expenses (latest 5) below the charts */}
+            <section className="mt-8">
+              <RecentExpenses expenses={expenses} />
             </section>
 
             {/* Category table + AI chat side by side on desktop, stacked on mobile */}
