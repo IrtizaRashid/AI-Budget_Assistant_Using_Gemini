@@ -74,6 +74,24 @@ export const chat = asyncHandler(async (req, res) => {
       }
 
       const amt = Number(amount);
+      const desc = description || category;
+
+      // --- Duplicate detection ---
+      // If a near-identical expense was recorded in the last 10 minutes,
+      // DO NOT insert. Ask the user whether to add it anyway.
+      const duplicate = await expenseService.findRecentDuplicate(
+        userId,
+        category,
+        amt,
+        desc
+      );
+      if (duplicate) {
+        return res.status(200).json({
+          status: 'duplicate_detected',
+          message: 'A similar expense was recently recorded.',
+          existingExpense: { category, amount: amt, description: desc },
+        });
+      }
 
       // --- Insufficient category budget check ---
       // If the category doesn't have enough remaining, DO NOT insert.
@@ -90,7 +108,7 @@ export const chat = asyncHandler(async (req, res) => {
             remaining <= 0
               ? `Your ${category} budget has been exhausted.`
               : `Your ${category} budget only has ${remaining} remaining.`,
-          expense: { category, amount: amt, description: description || category },
+          expense: { category, amount: amt, description: desc },
           options: [
             { id: 1, title: 'Transfer money from another category' },
             { id: 2, title: 'Record as an over-budget expense' },
@@ -104,7 +122,7 @@ export const chat = asyncHandler(async (req, res) => {
         user_id: userId,
         category,
         amount: amt,
-        description: description || category,
+        description: desc,
       });
 
       return res.status(201).json({

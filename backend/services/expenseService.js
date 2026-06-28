@@ -242,6 +242,25 @@ export const getTodayExpensesByUser = async (userId) => {
   return rows;
 };
 
+// Find a likely DUPLICATE expense: same category + amount + description,
+// recorded within the last 10 minutes. Returns the match or undefined.
+// Used to warn the user before inserting a probable accidental re-entry.
+export const findRecentDuplicate = async (userId, category, amount, description) => {
+  const [rows] = await pool.execute(
+    `SELECT id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ?
+        AND category = ?
+        AND amount = ?
+        AND description = ?
+        AND expense_date >= (NOW() - INTERVAL 10 MINUTE)
+      ORDER BY expense_date DESC
+      LIMIT 1`,
+    [userId, category, amount, description]
+  );
+  return rows[0];
+};
+
 // SELECT the single most recent expense for a user (or undefined).
 export const getLatestExpense = async (userId) => {
   const [rows] = await pool.execute(

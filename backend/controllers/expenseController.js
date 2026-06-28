@@ -84,6 +84,22 @@ export const confirmExpense = asyncHandler(async (req, res) => {
   }
   const description = expense.description || expense.category;
 
+  // Duplicate override: user confirmed "Add Anyway" — insert without re-checking.
+  if (action === 'add_anyway') {
+    const saved = await expenseService.addExpenseWithCategoryUpdate({
+      user_id: userId,
+      category: expense.category,
+      amount,
+      description,
+    });
+    return res.status(201).json({
+      status: 'success',
+      action: 'add_anyway',
+      message: 'Expense added.',
+      expense: saved,
+    });
+  }
+
   // Option 2: Record as over-budget — insert normally; spent may exceed allocated.
   if (action === 'over_budget') {
     const saved = await expenseService.addExpenseWithCategoryUpdate({

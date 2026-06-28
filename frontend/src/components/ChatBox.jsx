@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { sendChatMessage } from '../services/chatService.js';
 import { formatPKR } from '../utils/format.js';
 import ConfirmationCard from './ConfirmationCard.jsx';
+import DuplicateCard from './DuplicateCard.jsx';
 
 // Turn the backend's structured response into a friendly assistant message.
 // (The backend does the logic; the frontend only formats for display.)
@@ -110,6 +111,15 @@ export default function ChatBox({ userId, categories = [], onDataChanged }) {
         return;
       }
 
+      // Possible duplicate — ask the user before inserting.
+      if (data.status === 'duplicate_detected') {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', type: 'duplicate', expense: data.existingExpense },
+        ]);
+        return;
+      }
+
       setMessages((prev) => [...prev, buildAssistantMessage(data)]);
 
       // If the data changed (expense added or deleted), refresh the
@@ -166,12 +176,18 @@ export default function ChatBox({ userId, categories = [], onDataChanged }) {
                   : 'bg-slate-100 text-slate-700'
               }`}
             >
-              {/* Interactive insufficient-budget confirmation card */}
+              {/* Interactive cards (insufficient budget / duplicate) */}
               {msg.type === 'confirmation' ? (
                 <ConfirmationCard
                   userId={userId}
                   expense={msg.expense}
                   categories={categories}
+                  onChanged={onDataChanged}
+                />
+              ) : msg.type === 'duplicate' ? (
+                <DuplicateCard
+                  userId={userId}
+                  expense={msg.expense}
                   onChanged={onDataChanged}
                 />
               ) : (
