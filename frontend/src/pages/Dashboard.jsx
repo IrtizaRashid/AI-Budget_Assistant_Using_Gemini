@@ -6,6 +6,7 @@ import {
   getExpenses,
   getStatistics,
   getRecommendations,
+  resetMonth,
 } from '../services/api.js';
 import SummaryCard from '../components/SummaryCard.jsx';
 import CategoryTable from '../components/CategoryTable.jsx';
@@ -14,6 +15,8 @@ import ExpenseHistory from '../components/ExpenseHistory.jsx';
 import RecentExpenses from '../components/RecentExpenses.jsx';
 import WarningToast from '../components/WarningToast.jsx';
 import AIRecommendations from '../components/AIRecommendations.jsx';
+import MonthlyLimitModal from '../components/MonthlyLimitModal.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import ChartCard from '../components/charts/ChartCard.jsx';
 import PieChart from '../components/charts/PieChart.jsx';
 import BarChart from '../components/charts/BarChart.jsx';
@@ -121,6 +124,27 @@ export default function Dashboard() {
     [dismissWarning]
   );
 
+  // --- Monthly budget limit modal + "start new month" ---
+  const [limitData, setLimitData] = useState(null); // monthly_budget_exceeded payload
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  // True when the monthly budget is fully used → lock expense input.
+  const budgetFull = !!summary && Number(summary.remainingBudget) <= 0;
+
+  const handleStartNewMonth = async () => {
+    try {
+      setResetting(true);
+      await resetMonth(userId);
+      setShowResetConfirm(false);
+      refresh(); // reload cards/charts/history (now empty)
+    } catch {
+      // keep the dialog open on failure
+    } finally {
+      setResetting(false);
+    }
+  };
+
   // Fetch automatically when the dashboard opens.
   useEffect(() => {
     loadData();
@@ -159,6 +183,24 @@ export default function Dashboard() {
           />
         ))}
       </div>
+
+      {/* Monthly budget limit modal (blocks a rejected over-limit expense) */}
+      <MonthlyLimitModal
+        open={!!limitData}
+        data={limitData}
+        onClose={() => setLimitData(null)}
+      />
+
+      {/* "Start new month" confirmation */}
+      <ConfirmDialog
+        open={showResetConfirm}
+        title="Start a new month?"
+        message="This clears all expenses and resets category spending to zero. Your budget and category allocations are kept. This cannot be undone."
+        confirmText="Start New Month"
+        loading={resetting}
+        onConfirm={handleStartNewMonth}
+        onCancel={() => setShowResetConfirm(false)}
+      />
 
       <div className="relative mx-auto max-w-6xl px-4 py-10">
         {/* Header */}
@@ -239,6 +281,25 @@ export default function Dashboard() {
               />
             </section>
 
+            {/* Monthly budget fully-utilized banner + start new month */}
+            {budgetFull && (
+              <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-6 py-4 sm:flex-row">
+                <p className="font-semibold text-amber-300">
+                  ✅ Monthly budget fully utilized.
+                  <span className="ml-1 font-normal text-amber-200/80">
+                    Adding expenses is disabled. You can still view, edit, or
+                    delete expenses.
+                  </span>
+                </p>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="shrink-0 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white transition hover:from-fuchsia-500 hover:to-pink-500"
+                >
+                  Start New Month
+                </button>
+              </div>
+            )}
+
             {/* AI Recommendations (auto-refreshes when expenses change) */}
             <section className="mt-8 animate-fade-in-up delay-200">
               <AIRecommendations
@@ -305,6 +366,8 @@ export default function Dashboard() {
                   categories={categories}
                   onDataChanged={refresh}
                   onWarning={pushWarning}
+                  onMonthlyLimit={setLimitData}
+                  budgetFull={budgetFull}
                 />
               </section>
             </div>

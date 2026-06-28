@@ -2,6 +2,7 @@
 // delegates all DB work to userService.
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import * as userService from '../services/userService.js';
+import * as expenseService from '../services/expenseService.js';
 
 // POST /api/users
 // Body: { name, monthly_budget }
@@ -22,4 +23,22 @@ export const createUser = asyncHandler(async (req, res) => {
 
   const user = await userService.createUser({ name, monthly_budget });
   res.status(201).json(user);
+});
+
+// POST /api/users/:userId/reset-month
+// Starts a new month: clears all expenses and resets category spending to 0,
+// keeping the user's budget and category allocations.
+export const resetMonth = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await userService.findUserById(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  await expenseService.resetMonthForUser(userId);
+  res.status(200).json({
+    success: true,
+    message: 'New month started. Expenses cleared and category spending reset.',
+  });
 });

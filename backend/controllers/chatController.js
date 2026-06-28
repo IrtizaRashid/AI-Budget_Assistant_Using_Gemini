@@ -10,6 +10,10 @@ import * as expenseService from '../services/expenseService.js';
 import * as userService from '../services/userService.js';
 import * as categoryService from '../services/categoryService.js';
 import { buildBudgetWarning } from '../utils/budgetWarning.js';
+import {
+  exceedsMonthlyBudget,
+  monthlyBudgetExceeded,
+} from '../utils/monthlyBudget.js';
 
 // The only categories we accept (defends against AI hallucinating new ones).
 const SUPPORTED_CATEGORIES = [
@@ -76,6 +80,22 @@ export const chat = asyncHandler(async (req, res) => {
 
       const amt = Number(amount);
       const desc = description || category;
+
+      // --- HARD LIMIT: total monthly budget (HIGHEST PRIORITY) ---
+      // Checked BEFORE duplicate detection and category validation. Even if the
+      // category has room, the expense is rejected if it would push total
+      // spending past the monthly budget — so it can never go negative.
+      const user = await userService.findUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+      const monthlyBudget = Number(user.monthly_budget);
+      const totalSpent = await expenseService.getTotalSpentByUser(userId);
+      if (exceedsMonthlyBudget(monthlyBudget, totalSpent, amt)) {
+        return res
+          .status(200)
+          .json(monthlyBudgetExceeded(monthlyBudget, totalSpent, amt));
+      }
 
       // --- Duplicate detection ---
       // If a near-identical expense was recorded in the last 10 minutes,

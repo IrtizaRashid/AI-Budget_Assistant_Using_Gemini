@@ -61,4 +61,10 @@ export const getRecommendations = async (userId) => {
   return data;
 };
 
+// POST /api/users/:userId/reset-month — clears expenses, resets category spend.
+export const resetMonth = async (userId) => {
+  const { data } = await api.post(`/users/${userId}/reset-month`);
+  return data;
+};
+
 export default api;

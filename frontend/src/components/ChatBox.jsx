@@ -73,13 +73,16 @@ const buildAssistantMessage = (data) => {
 //   userId         : current user's id
 //   categories     : current categories (used by the over-budget transfer flow)
 //   onDataChanged  : callback to refresh the dashboard after any change
-//                    (expense added OR deleted)
 //   onWarning      : callback to surface a budget warning toast
+//   onMonthlyLimit : callback when the total monthly budget is exceeded
+//   budgetFull     : true when the monthly budget is fully utilized (locks input)
 export default function ChatBox({
   userId,
   categories = [],
   onDataChanged,
   onWarning,
+  onMonthlyLimit,
+  budgetFull = false,
 }) {
   const [messages, setMessages] = useState([
     {
@@ -111,7 +114,7 @@ export default function ChatBox({
   // input AND voice transcripts (avoids relying on async state updates).
   const sendMessage = async (rawText) => {
     const text = (rawText ?? '').trim();
-    if (!text || loading) return;
+    if (!text || loading || budgetFull) return;
 
     // Show the user's message immediately and clear the input.
     setMessages((prev) => [...prev, { role: 'user', text }]);
@@ -120,6 +123,12 @@ export default function ChatBox({
 
     try {
       const data = await sendChatMessage(userId, text);
+
+      // Total monthly budget exceeded — show the blocking modal. Nothing saved.
+      if (data.status === 'monthly_budget_exceeded') {
+        onMonthlyLimit?.(data);
+        return;
+      }
 
       // Insufficient category budget — show the interactive confirmation card
       // instead of a normal text reply. No expense is inserted yet.
@@ -302,6 +311,14 @@ export default function ChatBox({
         <div ref={bottomRef} />
       </div>
 
+      {/* When the monthly budget is fully used, lock all expense input. */}
+      {budgetFull && (
+        <div className="border-t border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-xs font-medium text-amber-300">
+          Monthly budget fully utilized — delete an expense or start a new month
+          to add more.
+        </div>
+      )}
+
       {/* Input + Voice + Send */}
       <div className="flex items-center gap-2 border-t border-white/10 p-3">
         <input
@@ -309,20 +326,20 @@ export default function ChatBox({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type or speak a message…"
-          disabled={loading}
+          placeholder={budgetFull ? 'Monthly budget reached' : 'Type or speak a message…'}
+          disabled={loading || budgetFull}
           className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-50"
         />
 
-        {/* Microphone (Web Speech API) */}
+        {/* Microphone (Web Speech API) — also disabled when budget is full */}
         <VoiceInput
           onResult={handleVoiceResult}
           onError={handleVoiceError}
-          disabled={loading}
+          disabled={loading || budgetFull}
         />
         <button
           onClick={handleSend}
-          disabled={loading || !input.trim()}
+          disabled={loading || budgetFull || !input.trim()}
           className="rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white shadow shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Send

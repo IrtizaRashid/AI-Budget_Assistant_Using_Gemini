@@ -285,6 +285,27 @@ export const getTotalSpentByUser = async (userId) => {
   return Number(rows[0].totalSpent);
 };
 
+// Start a new month: delete ALL of a user's expenses and reset every
+// category's spent_amount to 0 — in one transaction. Keeps the user and their
+// category allocations (budget) intact.
+export const resetMonthForUser = async (userId) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute('DELETE FROM expenses WHERE user_id = ?', [userId]);
+    await connection.execute(
+      'UPDATE budget_categories SET spent_amount = 0 WHERE user_id = ?',
+      [userId]
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 // COUNT of expense records for a user (returns a Number).
 export const getExpenseCountByUser = async (userId) => {
   const [rows] = await pool.execute(
