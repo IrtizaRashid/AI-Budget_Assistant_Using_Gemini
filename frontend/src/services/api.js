@@ -38,4 +38,16 @@ export const getCategories = async (userId) => {
   return data;
 };
 
+// GET /api/expenses/:userId  -> [{ id, category, amount, description, expense_date }]
+export const getExpenses = async (userId) => {
+  const { data } = await api.get(`/expenses/${userId}`);
+  return data;
+};
+
+// DELETE /api/expenses/:expenseId
+export const deleteExpense = async (expenseId) => {
+  const { data } = await api.delete(`/expenses/${expenseId}`);
+  return data;
+};
+
 export default api;

@@ -95,6 +95,83 @@ export const addExpenseWithCategoryUpdate = async ({
   }
 };
 
+// Delete an expense AND subtract its amount from the matching category's
+// spent_amount, in one transaction. Returns the deleted expense, or null
+// if no expense with that id exists. Used by DELETE and delete_last_expense.
+export const deleteExpenseWithCategoryUpdate = async (expenseId) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Look up the expense first so we know which category/amount to adjust.
+    const [rows] = await connection.execute(
+      'SELECT id, user_id, category, amount, description, expense_date FROM expenses WHERE id = ?',
+      [expenseId]
+    );
+    const expense = rows[0];
+    if (!expense) {
+      await connection.rollback();
+      return null; // invalid id
+    }
+
+    // Remove the expense.
+    await connection.execute('DELETE FROM expenses WHERE id = ?', [expenseId]);
+
+    // Subtract from spent_amount. GREATEST(...,0) guards against going negative.
+    await connection.execute(
+      `UPDATE budget_categories
+          SET spent_amount = GREATEST(spent_amount - ?, 0)
+        WHERE user_id = ? AND category_name = ?`,
+      [expense.amount, expense.user_id, expense.category]
+    );
+
+    await connection.commit();
+    return expense;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+// SELECT expenses for a user filtered by category, latest first.
+export const getExpensesByCategory = async (userId, category) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ? AND category = ?
+      ORDER BY expense_date DESC, id DESC`,
+    [userId, category]
+  );
+  return rows;
+};
+
+// SELECT today's expenses for a user, latest first.
+export const getTodayExpensesByUser = async (userId) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ? AND DATE(expense_date) = CURDATE()
+      ORDER BY expense_date DESC, id DESC`,
+    [userId]
+  );
+  return rows;
+};
+
+// SELECT the single most recent expense for a user (or undefined).
+export const getLatestExpense = async (userId) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ?
+      ORDER BY expense_date DESC, id DESC
+      LIMIT 1`,
+    [userId]
+  );
+  return rows[0];
+};
+
 // SUM of all expense amounts for a user (returns a Number).
 // COALESCE guarantees 0 (not NULL) when the user has no expenses.
 export const getTotalSpentByUser = async (userId) => {

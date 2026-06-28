@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getDashboard, getCategories } from '../services/api.js';
+import { getDashboard, getCategories, getExpenses } from '../services/api.js';
 import SummaryCard from '../components/SummaryCard.jsx';
 import CategoryTable from '../components/CategoryTable.jsx';
 import ChatBox from '../components/ChatBox.jsx';
+import ExpenseHistory from '../components/ExpenseHistory.jsx';
 import { formatPKR } from '../utils/format.js';
 
 export default function Dashboard() {
@@ -12,30 +13,41 @@ export default function Dashboard() {
 
   const [summary, setSummary] = useState(null); // { monthlyBudget, totalSpent, remainingBudget }
   const [categories, setCategories] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Load both endpoints in parallel. Wrapped in useCallback so the
-  // "Retry" button can re-run it without duplicating the logic.
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const [dash, cats] = await Promise.all([
-        getDashboard(userId),
-        getCategories(userId),
-      ]);
-      setSummary(dash);
-      setCategories(cats);
-    } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          'Failed to load dashboard data. Is the backend running?'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  // Load all three endpoints in parallel.
+  // `silent = true` refreshes data WITHOUT toggling the full-page spinner,
+  // so the ChatBox stays mounted (chat history is preserved) after an
+  // expense is added or deleted.
+  const loadData = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        setError('');
+        const [dash, cats, exps] = await Promise.all([
+          getDashboard(userId),
+          getCategories(userId),
+          getExpenses(userId),
+        ]);
+        setSummary(dash);
+        setCategories(cats);
+        setExpenses(exps);
+      } catch (err) {
+        setError(
+          err.response?.data?.error ||
+            'Failed to load dashboard data. Is the backend running?'
+        );
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [userId]
+  );
+
+  // Silent refresh used by chat + delete actions (no spinner, keeps chat).
+  const refresh = useCallback(() => loadData(true), [loadData]);
 
   // Fetch automatically when the dashboard opens.
   useEffect(() => {
@@ -105,11 +117,16 @@ export default function Dashboard() {
               </section>
 
               <section className="lg:col-span-1">
-                {/* onExpenseAdded={loadData} re-fetches cards + table after an
-                    expense is added via chat — no page refresh. */}
-                <ChatBox userId={userId} onExpenseAdded={loadData} />
+                {/* Silent refresh after chat add/delete — no page reload,
+                    chat history preserved. */}
+                <ChatBox userId={userId} onDataChanged={refresh} />
               </section>
             </div>
+
+            {/* Expense history (full width below) */}
+            <section className="mt-8">
+              <ExpenseHistory expenses={expenses} onChanged={refresh} />
+            </section>
           </>
         )}
       </div>

@@ -34,15 +34,41 @@ const buildAssistantMessage = (data) => {
             : 'Here are your expenses (newest first):',
         expenses: data.expenses,
       };
+    case 'show_category_expenses':
+      return {
+        role: 'assistant',
+        text:
+          data.expenses.length === 0
+            ? `You have no ${data.category} expenses yet.`
+            : `Here are your ${data.category} expenses:`,
+        expenses: data.expenses,
+      };
+    case 'show_today_expenses':
+      return {
+        role: 'assistant',
+        text:
+          data.expenses.length === 0
+            ? 'You have no expenses today.'
+            : "Here are today's expenses:",
+        expenses: data.expenses,
+      };
+    case 'delete_last_expense':
+      return {
+        role: 'assistant',
+        text: `🗑️ Deleted your last expense: ${data.deleted.category} — ${formatPKR(
+          data.deleted.amount
+        )}${data.deleted.description ? ` (${data.deleted.description})` : ''}.`,
+      };
     default:
       return { role: 'assistant', text: 'Done.' };
   }
 };
 
 // Props:
-//   userId          : current user's id
-//   onExpenseAdded  : callback to refresh the dashboard after an expense
-export default function ChatBox({ userId, onExpenseAdded }) {
+//   userId         : current user's id
+//   onDataChanged  : callback to refresh the dashboard after any change
+//                    (expense added OR deleted)
+export default function ChatBox({ userId, onDataChanged }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -71,9 +97,12 @@ export default function ChatBox({ userId, onExpenseAdded }) {
       const data = await sendChatMessage(userId, text);
       setMessages((prev) => [...prev, buildAssistantMessage(data)]);
 
-      // If an expense was added, refresh the dashboard (no page reload).
-      if (data.intent === 'add_expense' && typeof onExpenseAdded === 'function') {
-        onExpenseAdded();
+      // If the data changed (expense added or deleted), refresh the
+      // dashboard, category table and expense history (no page reload).
+      const changesData =
+        data.intent === 'add_expense' || data.intent === 'delete_last_expense';
+      if (changesData && typeof onDataChanged === 'function') {
+        onDataChanged();
       }
     } catch (err) {
       const errorText =

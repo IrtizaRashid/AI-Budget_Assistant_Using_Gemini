@@ -48,6 +48,15 @@ SUPPORTED INTENTS and their EXACT JSON shapes:
 4) Show all expenses:
 { "intent": "show_expenses" }
 
+5) Show expenses for one category:
+{ "intent": "show_category_expenses", "category": "<supported category>" }
+
+6) Show today's expenses:
+{ "intent": "show_today_expenses" }
+
+7) Delete the most recent expense:
+{ "intent": "delete_last_expense" }
+
 EXAMPLES:
 User: I spent 500 on pizza.
 { "intent": "add_expense", "category": "Food", "amount": 500, "description": "Pizza" }
@@ -69,6 +78,15 @@ User: How much food budget remains?
 
 User: Show all expenses.
 { "intent": "show_expenses" }
+
+User: Show my food expenses.
+{ "intent": "show_category_expenses", "category": "Food" }
+
+User: Show today's expenses.
+{ "intent": "show_today_expenses" }
+
+User: Delete my last expense.
+{ "intent": "delete_last_expense" }
 
 The "amount" must always be a positive number with no currency symbols or commas.`;
 

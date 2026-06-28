@@ -36,3 +36,24 @@ export const getExpenses = asyncHandler(async (req, res) => {
   const expenses = await expenseService.getExpensesByUser(userId);
   res.status(200).json(expenses);
 });
+
+// DELETE /api/expenses/:expenseId
+// Removes the expense and decrements the category's spent_amount.
+export const deleteExpense = asyncHandler(async (req, res) => {
+  const { expenseId } = req.params;
+
+  if (!expenseId || isNaN(Number(expenseId))) {
+    return res.status(400).json({ error: 'Invalid expense id.' });
+  }
+
+  const deleted = await expenseService.deleteExpenseWithCategoryUpdate(expenseId);
+  if (!deleted) {
+    return res.status(404).json({ error: 'Expense not found.' });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Expense deleted.',
+    expense: deleted,
+  });
+});

@@ -146,6 +146,48 @@ export const chat = asyncHandler(async (req, res) => {
     }
 
     // ----------------------------------------------------------------
+    case 'show_category_expenses': {
+      const { category } = intent;
+      if (!SUPPORTED_CATEGORIES.includes(category)) {
+        return res
+          .status(422)
+          .json({ error: `Unknown category: "${category}".` });
+      }
+      const expenses = await expenseService.getExpensesByCategory(
+        userId,
+        category
+      );
+      return res
+        .status(200)
+        .json({ intent: 'show_category_expenses', category, expenses });
+    }
+
+    // ----------------------------------------------------------------
+    case 'show_today_expenses': {
+      const expenses = await expenseService.getTodayExpensesByUser(userId);
+      return res
+        .status(200)
+        .json({ intent: 'show_today_expenses', expenses });
+    }
+
+    // ----------------------------------------------------------------
+    case 'delete_last_expense': {
+      const last = await expenseService.getLatestExpense(userId);
+      if (!last) {
+        return res
+          .status(404)
+          .json({ error: 'You have no expenses to delete.' });
+      }
+      // Delete it and roll back spent_amount (same transaction as manual delete).
+      await expenseService.deleteExpenseWithCategoryUpdate(last.id);
+      return res.status(200).json({
+        intent: 'delete_last_expense',
+        success: true,
+        deleted: last,
+      });
+    }
+
+    // ----------------------------------------------------------------
     default:
       return res
         .status(422)
