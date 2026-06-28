@@ -1,18 +1,19 @@
 -- ============================================================
---  AI Personal Budget Assistant — Database Schema (Step 2)
+--  AI Personal Budget Assistant — Database Schema
 -- ============================================================
---  Run this once to create the database and all tables.
+--  This script creates the tables only. The target database is
+--  selected by the CONNECTION (so it works on Railway, which gives
+--  you a pre-created database such as "railway").
 --
---    mysql -u root -p < schema.sql
+--  Local MySQL:
+--    mysql -u root -p budget_ai < schema.sql
+--    (create the database first: CREATE DATABASE budget_ai;)
 --
---  Or paste it into MySQL Workbench / phpMyAdmin and run.
+--  Railway:
+--    Connect with the Railway connection string and run this file,
+--    e.g. mysql -h <host> -P <port> -u <user> -p<password> <db> < schema.sql
+--    or paste it into the Railway database "Query" tab.
 -- ============================================================
-
-CREATE DATABASE IF NOT EXISTS budget_ai
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE budget_ai;
 
 -- ------------------------------------------------------------
 --  Table 1: users
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- ------------------------------------------------------------
 --  Table 2: budget_categories
---  spent_amount is a STORED snapshot set when categories are saved.
+--  spent_amount is a STORED snapshot updated as expenses change.
 --  (Remaining = allocated - spent is CALCULATED, never stored.)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS budget_categories (
@@ -45,7 +46,7 @@ CREATE TABLE IF NOT EXISTS budget_categories (
 
 -- ------------------------------------------------------------
 --  Table 3: expenses
---  expense_date defaults to NOW() so the body need not supply it.
+--  expense_date defaults to NOW() so the request body need not supply it.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS expenses (
   id           INT            NOT NULL AUTO_INCREMENT,
@@ -59,5 +60,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE,
   INDEX idx_expenses_user (user_id),
-  INDEX idx_expenses_date (expense_date)
+  INDEX idx_expenses_date (expense_date),
+  -- Speeds up per-category lookups and duplicate detection.
+  INDEX idx_expenses_user_category (user_id, category)
 ) ENGINE = InnoDB;

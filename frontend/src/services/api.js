@@ -4,10 +4,14 @@
 // add a function in this file.
 import axios from 'axios';
 
-// Base URL of the Express backend. In later steps this can be moved
-// to a Vite env var (import.meta.env.VITE_API_URL).
+// Backend base URL comes from the VITE_API_URL environment variable so the
+// same build works against any backend (local, Render, etc.). Falls back to
+// the local dev server when the variable is not set.
+//   e.g. VITE_API_URL=https://your-backend.onrender.com
+const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: `${API_ROOT.replace(/\/$/, '')}/api`, // tolerate a trailing slash
   headers: { 'Content-Type': 'application/json' },
 });
 

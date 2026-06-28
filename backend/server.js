@@ -23,8 +23,22 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
 
+// Render (and most PaaS) sit behind a proxy; trust it for correct protocol/IP.
+app.set('trust proxy', 1);
+
 // ---- Global middleware ----
-app.use(cors());            // Allow the React frontend to call this API
+// Restrict CORS to the configured frontend origin(s). Requests with no Origin
+// (e.g. curl, health checks) are allowed so platform probes keep working.
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || config.corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+  })
+);
 app.use(express.json());    // Parse incoming JSON request bodies
 
 // ---- Routes ----
@@ -43,7 +57,8 @@ app.use(notFound);          // Unknown route -> 404
 app.use(errorHandler);      // Any thrown error -> JSON error response
 
 // ---- Start server ----
-app.listen(config.port, async () => {
-  console.log(`🚀 Server running on http://localhost:${config.port}`);
+// Bind to 0.0.0.0 so hosted platforms (Render) can route traffic to the app.
+app.listen(config.port, '0.0.0.0', async () => {
+  console.log(`🚀 Server running on port ${config.port} [${config.env}]`);
   await testConnection();   // Non-fatal MySQL connectivity check
 });
