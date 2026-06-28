@@ -17,4 +17,25 @@ export const checkHealth = async () => {
   return data;
 };
 
+// POST /api/setup-budget
+// payload: { name, monthlyBudget, categories: [{ category, allocatedAmount }] }
+export const setupBudget = async (payload) => {
+  const { data } = await api.post('/setup-budget', payload);
+  return data;
+};
+
+// GET /api/dashboard/:userId
+// -> { monthlyBudget, totalSpent, remainingBudget }
+export const getDashboard = async (userId) => {
+  const { data } = await api.get(`/dashboard/${userId}`);
+  return data;
+};
+
+// GET /api/categories/:userId
+// -> [{ category, allocated, spent, remaining }]
+export const getCategories = async (userId) => {
+  const { data } = await api.get(`/categories/${userId}`);
+  return data;
+};
+
 export default api;

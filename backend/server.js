@@ -11,6 +11,7 @@ import cors from 'cors';
 import { config } from './config/env.js';
 import { testConnection } from './database/db.js';
 import healthRoutes from './routes/healthRoutes.js';
+import setupRoutes from './routes/setupRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
@@ -25,6 +26,7 @@ app.use(express.json());    // Parse incoming JSON request bodies
 
 // ---- Routes ----
 app.use('/api', healthRoutes);              // GET  /api/health
+app.use('/api', setupRoutes);               // POST /api/setup-budget
 app.use('/api/users', userRoutes);          // POST /api/users
 app.use('/api/categories', categoryRoutes); // POST /api/categories, GET /api/categories/:userId
 app.use('/api/expenses', expenseRoutes);    // POST /api/expenses,   GET /api/expenses/:userId

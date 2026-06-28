@@ -37,17 +37,16 @@ export const getCategories = asyncHandler(async (req, res) => {
 
   const rows = await categoryService.getCategoriesByUser(userId);
 
-  // Remaining = Allocated - Spent  (computed, never stored).
+  // Shape the response for the dashboard: { category, allocated, spent, remaining }.
+  // Remaining = Allocated - Spent  (computed here, never stored in the DB).
   const categories = rows.map((c) => {
     const allocated = Number(c.allocated_amount);
     const spent = Number(c.spent_amount);
     return {
-      id: c.id,
-      user_id: c.user_id,
-      category_name: c.category_name,
-      allocated_amount: allocated,
-      spent_amount: spent,
-      remaining_amount: allocated - spent,
+      category: c.category_name,
+      allocated,
+      spent,
+      remaining: allocated - spent,
     };
   });
 
