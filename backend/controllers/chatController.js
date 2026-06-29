@@ -171,41 +171,10 @@ export const chat = asyncHandler(async (req, res) => {
 
   switch (intent.intent) {
 
-    // ── Single expense ────────────────────────────────────────────────────
+    // ── Add expense(s) — handles both single and multiple via expenses[] array ─
     case 'add_expense': {
-      const user = await userService.findUserById(userId);
-      if (!user) return res.status(404).json({ error: 'User not found.' });
-
-      const result = await processSingleExpense(
-        userId,
-        intent.category,
-        intent.amount,
-        intent.description,
-        validCategories,
-        user
-      );
-
-      if (!result.success) {
-        if (result.monthlyLimitExceeded) return res.status(200).json(result.data);
-        if (result.duplicate) return res.status(200).json(result.data);
-        if (result.confirmationRequired) return res.status(200).json(result.data);
-        return res.status(422).json({ error: result.error });
-      }
-
-      return res.status(201).json({
-        intent: 'add_expense',
-        success: true,
-        category: result.category,
-        amount: result.amount,
-        description: result.description,
-        expense: result.expense,
-        budgetWarning: result.budgetWarning,
-      });
-    }
-
-    // ── Multiple expenses in one message ─────────────────────────────────
-    case 'add_multiple_expenses': {
       const expenses = intent.expenses;
+
       if (!Array.isArray(expenses) || expenses.length === 0) {
         return res.status(422).json({ error: 'No expenses found in the request.' });
       }
@@ -213,11 +182,39 @@ export const chat = asyncHandler(async (req, res) => {
       const user = await userService.findUserById(userId);
       if (!user) return res.status(404).json({ error: 'User not found.' });
 
-      const results = [];
+      // Handle ambiguous expenses that need clarification
+      const ambiguous = expenses.filter(
+        (e) => e.ambiguity === true && (e.amount === null || e.category === null)
+      );
+      if (ambiguous.length > 0 && expenses.length === ambiguous.length) {
+        // All expenses are ambiguous — ask for clarification
+        return res.status(200).json({
+          intent: 'add_expense',
+          status: 'clarification_needed',
+          message: ambiguous[0].possible_categories
+            ? `I'm not sure which category this belongs to. Did you mean ${ambiguous[0].possible_categories.join(' or ')}?`
+            : ambiguous[0].amount === null
+            ? 'How much did you spend?'
+            : 'Which category should this go under? Your categories are: ' + validCategories.join(', '),
+          expenses: ambiguous,
+        });
+      }
+
+      const added = [];
       const warnings = [];
       const errors = [];
 
       for (const exp of expenses) {
+        // Skip ambiguous items that are missing critical fields
+        if (exp.ambiguity && (exp.amount === null || exp.category === null)) {
+          errors.push({
+            description: exp.description,
+            reason: exp.amount === null ? 'Amount missing' : 'Category unclear',
+            possible_categories: exp.possible_categories || null,
+          });
+          continue;
+        }
+
         const result = await processSingleExpense(
           userId,
           exp.category,
@@ -228,30 +225,59 @@ export const chat = asyncHandler(async (req, res) => {
         );
 
         if (result.success) {
-          results.push({
+          added.push({
             category: result.category,
             amount: result.amount,
             description: result.description,
             expense: result.expense,
+            confidence: exp.confidence,
+            merchant: exp.merchant || null,
+            payment_method: exp.payment_method || null,
           });
           if (result.budgetWarning) warnings.push(result.budgetWarning);
         } else {
-          // For multi-expense, collect errors but continue processing the rest
+          if (result.monthlyLimitExceeded && expenses.length === 1) {
+            return res.status(200).json(result.data);
+          }
+          if (result.duplicate && expenses.length === 1) {
+            return res.status(200).json(result.data);
+          }
+          if (result.confirmationRequired && expenses.length === 1) {
+            return res.status(200).json(result.data);
+          }
           errors.push({
-            attempted: { category: exp.category, amount: exp.amount },
+            attempted: { category: exp.category, amount: exp.amount, description: exp.description },
             reason: result.error || 'Could not process this expense.',
-            ...(result.data || {}),
           });
         }
       }
 
-      return res.status(results.length > 0 ? 201 : 422).json({
-        intent: 'add_multiple_expenses',
-        success: results.length > 0,
-        added: results,
+      // Single expense — return in the format the frontend already understands
+      if (expenses.length === 1 && added.length === 1) {
+        return res.status(201).json({
+          intent: 'add_expense',
+          success: true,
+          category: added[0].category,
+          amount: added[0].amount,
+          description: added[0].description,
+          expense: added[0].expense,
+          budgetWarning: warnings[0] || null,
+          meta: {
+            confidence: added[0].confidence,
+            merchant: added[0].merchant,
+            payment_method: added[0].payment_method,
+          },
+        });
+      }
+
+      // Multiple expenses — return summary
+      return res.status(added.length > 0 ? 201 : 422).json({
+        intent: 'add_expense',
+        success: added.length > 0,
+        added,
         errors: errors.length > 0 ? errors : undefined,
         budgetWarnings: warnings.length > 0 ? warnings : undefined,
-        summary: `Added ${results.length} of ${expenses.length} expense(s).`,
+        summary: `Added ${added.length} of ${expenses.length} expense(s).`,
       });
     }
 
