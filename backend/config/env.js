@@ -17,7 +17,7 @@ export const config = {
   },
   groq: {
     apiKey: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL || 'llama3-70b-8192',
+    model: process.env.GROQ_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct',
   },
   // Comma-separated list of allowed frontend origins for CORS.
   // e.g. CORS_ORIGIN=https://your-app.vercel.app
