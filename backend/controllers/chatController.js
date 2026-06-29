@@ -1,9 +1,9 @@
-// Chat controller — the heart of Step 5.
+// Chat controller — processes AI intents and executes them against the DB.
 //
-// Flow:  React -> here -> Groq (interpret only) -> VALIDATE -> DB -> React
+// Flow: React → here → Groq (classify only) → validate → DB → React
 //
-// The AI ONLY classifies the message into an intent JSON. Every validation,
-// calculation, and database write happens HERE, in our own code.
+// The AI ONLY classifies intent. Every validation, calculation, and DB write
+// happens here in our own code — the AI never touches the database.
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import * as groqService from '../services/groqService.js';
 import * as expenseService from '../services/expenseService.js';
@@ -15,267 +15,375 @@ import {
   monthlyBudgetExceeded,
 } from '../utils/monthlyBudget.js';
 
-// The only categories we accept (defends against AI hallucinating new ones).
-const SUPPORTED_CATEGORIES = [
-  'Food',
-  'Transport',
-  'Bills',
-  'Entertainment',
-  'Savings',
-  'Miscellaneous',
-];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Fetch the user's category names from the DB.
+// Falls back to a default set if the user has no categories yet.
+const getUserCategories = async (userId) => {
+  const cats = await categoryService.getCategoriesByUser(userId);
+  if (cats && cats.length > 0) {
+    return cats.map((c) => c.category_name);
+  }
+  return ['Food', 'Transport', 'Bills', 'Entertainment', 'Savings', 'Miscellaneous'];
+};
+
+// Normalise a category string against the user's actual category list.
+// Returns the matched category or null if no match.
+const matchCategory = (raw, validCategories) => {
+  if (!raw) return null;
+  const normalised = String(raw).trim();
+  // Exact match first
+  const exact = validCategories.find(
+    (c) => c.toLowerCase() === normalised.toLowerCase()
+  );
+  if (exact) return exact;
+  // Partial match (e.g. "food" matches "Food & Dining")
+  const partial = validCategories.find((c) =>
+    c.toLowerCase().includes(normalised.toLowerCase()) ||
+    normalised.toLowerCase().includes(c.toLowerCase())
+  );
+  return partial || null;
+};
+
+// Process a single add_expense intent. Returns a response object.
+// Shared by both add_expense and add_multiple_expenses handlers.
+const processSingleExpense = async (userId, rawCategory, amount, description, validCategories, user) => {
+  const category = matchCategory(rawCategory, validCategories);
+  if (!category) {
+    return {
+      success: false,
+      error: `Unknown category "${rawCategory}". Your categories are: ${validCategories.join(', ')}.`,
+    };
+  }
+
+  const amt = Number(amount);
+  if (!amt || amt <= 0) {
+    return { success: false, error: 'Amount must be greater than zero.' };
+  }
+
+  const desc = description || category;
+  const monthlyBudget = Number(user.monthly_budget);
+  const totalSpent = await expenseService.getTotalSpentByUser(userId);
+
+  // Hard monthly limit check
+  if (exceedsMonthlyBudget(monthlyBudget, totalSpent, amt)) {
+    return {
+      success: false,
+      monthlyLimitExceeded: true,
+      data: monthlyBudgetExceeded(monthlyBudget, totalSpent, amt),
+    };
+  }
+
+  // Duplicate detection
+  const duplicate = await expenseService.findRecentDuplicate(userId, category, amt, desc);
+  if (duplicate) {
+    return {
+      success: false,
+      duplicate: true,
+      data: {
+        status: 'duplicate_detected',
+        message: 'A similar expense was recently recorded.',
+        existingExpense: { category, amount: amt, description: desc },
+      },
+    };
+  }
+
+  // Insufficient category budget check
+  const cat = await categoryService.getCategoryByName(userId, category);
+  const remaining = cat
+    ? Number(cat.allocated_amount) - Number(cat.spent_amount)
+    : Infinity;
+
+  if (amt > remaining) {
+    return {
+      success: false,
+      confirmationRequired: true,
+      data: {
+        status: 'confirmation_required',
+        message:
+          remaining <= 0
+            ? `Your ${category} budget has been exhausted.`
+            : `Your ${category} budget only has ${remaining} remaining.`,
+        expense: { category, amount: amt, description: desc },
+        options: [
+          { id: 1, title: 'Transfer money from another category' },
+          { id: 2, title: 'Record as an over-budget expense' },
+          { id: 3, title: 'Cancel this expense' },
+        ],
+      },
+    };
+  }
+
+  // All checks passed — insert expense
+  const expense = await expenseService.addExpenseWithCategoryUpdate({
+    user_id: userId,
+    category,
+    amount: amt,
+    description: desc,
+  });
+
+  const updatedCat = await categoryService.getCategoryByName(userId, category);
+  const budgetWarning = updatedCat
+    ? buildBudgetWarning(
+        category,
+        Number(updatedCat.allocated_amount),
+        Number(updatedCat.spent_amount)
+      )
+    : null;
+
+  return {
+    success: true,
+    expense,
+    category,
+    amount: amt,
+    description: desc,
+    budgetWarning,
+  };
+};
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
 
 // POST /api/chat   body: { userId, message }
 export const chat = asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
 
-  // --- Basic request validation ---
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required.' });
-  }
+  if (!userId) return res.status(400).json({ error: 'userId is required.' });
   if (!message || !String(message).trim()) {
     return res.status(400).json({ error: 'message is required.' });
   }
 
-  // --- Step 1: Ask Groq to interpret the message into an intent ---
-  // Any AI failure (network, bad key, malformed JSON) is handled here.
+  // Fetch user's actual categories from DB before calling AI
+  const validCategories = await getUserCategories(userId);
+
+  // Ask Groq to classify the message
   let intent;
   try {
-    intent = await groqService.interpretMessage(message);
+    intent = await groqService.interpretMessage(message, validCategories);
   } catch (err) {
-    return res
-      .status(502)
-      .json({ error: err.message || 'The AI service is unavailable.' });
+    return res.status(502).json({ error: err.message || 'The AI service is unavailable.' });
   }
 
-  // --- Step 2: Validate the parsed intent object ---
   if (!intent || typeof intent !== 'object' || !intent.intent) {
-    return res
-      .status(422)
-      .json({ error: 'Sorry, I could not understand that request.' });
+    return res.status(422).json({ error: 'Sorry, I could not understand that request.' });
   }
 
-  // --- Step 3: Act on the intent (our code does all the real work) ---
+  // ─── Intent dispatch ──────────────────────────────────────────────────────
+
   switch (intent.intent) {
-    // ----------------------------------------------------------------
+
+    // ── Single expense ────────────────────────────────────────────────────
     case 'add_expense': {
-      const { category, amount, description } = intent;
-
-      // Reject unknown categories.
-      if (!SUPPORTED_CATEGORIES.includes(category)) {
-        return res
-          .status(422)
-          .json({ error: `Unknown category: "${category}".` });
-      }
-      // Reject missing amount.
-      if (amount === undefined || amount === null || isNaN(Number(amount))) {
-        return res.status(422).json({ error: 'The amount is missing.' });
-      }
-      // Reject negative / zero amount.
-      if (Number(amount) <= 0) {
-        return res
-          .status(422)
-          .json({ error: 'The amount must be greater than zero.' });
-      }
-
-      const amt = Number(amount);
-      const desc = description || category;
-
-      // --- HARD LIMIT: total monthly budget (HIGHEST PRIORITY) ---
-      // Checked BEFORE duplicate detection and category validation. Even if the
-      // category has room, the expense is rejected if it would push total
-      // spending past the monthly budget — so it can never go negative.
       const user = await userService.findUserById(userId);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found.' });
-      }
-      const monthlyBudget = Number(user.monthly_budget);
-      const totalSpent = await expenseService.getTotalSpentByUser(userId);
-      if (exceedsMonthlyBudget(monthlyBudget, totalSpent, amt)) {
-        return res
-          .status(200)
-          .json(monthlyBudgetExceeded(monthlyBudget, totalSpent, amt));
-      }
+      if (!user) return res.status(404).json({ error: 'User not found.' });
 
-      // --- Duplicate detection ---
-      // If a near-identical expense was recorded in the last 10 minutes,
-      // DO NOT insert. Ask the user whether to add it anyway.
-      const duplicate = await expenseService.findRecentDuplicate(
+      const result = await processSingleExpense(
         userId,
-        category,
-        amt,
-        desc
+        intent.category,
+        intent.amount,
+        intent.description,
+        validCategories,
+        user
       );
-      if (duplicate) {
-        return res.status(200).json({
-          status: 'duplicate_detected',
-          message: 'A similar expense was recently recorded.',
-          existingExpense: { category, amount: amt, description: desc },
-        });
+
+      if (!result.success) {
+        if (result.monthlyLimitExceeded) return res.status(200).json(result.data);
+        if (result.duplicate) return res.status(200).json(result.data);
+        if (result.confirmationRequired) return res.status(200).json(result.data);
+        return res.status(422).json({ error: result.error });
       }
-
-      // --- Insufficient category budget check ---
-      // If the category doesn't have enough remaining, DO NOT insert.
-      // Ask the user how to proceed instead (transfer / over-budget / cancel).
-      const cat = await categoryService.getCategoryByName(userId, category);
-      const remaining = cat
-        ? Number(cat.allocated_amount) - Number(cat.spent_amount)
-        : Infinity; // no category row -> nothing to exhaust
-
-      if (amt > remaining) {
-        return res.status(200).json({
-          status: 'confirmation_required',
-          message:
-            remaining <= 0
-              ? `Your ${category} budget has been exhausted.`
-              : `Your ${category} budget only has ${remaining} remaining.`,
-          expense: { category, amount: amt, description: desc },
-          options: [
-            { id: 1, title: 'Transfer money from another category' },
-            { id: 2, title: 'Record as an over-budget expense' },
-            { id: 3, title: 'Cancel this expense' },
-          ],
-        });
-      }
-
-      // Enough budget — insert expense + update spent_amount (transaction).
-      const expense = await expenseService.addExpenseWithCategoryUpdate({
-        user_id: userId,
-        category,
-        amount: amt,
-        description: desc,
-      });
-
-      // After recording, evaluate the category's remaining budget for a warning.
-      const updatedCat = await categoryService.getCategoryByName(userId, category);
-      const budgetWarning = updatedCat
-        ? buildBudgetWarning(
-            category,
-            Number(updatedCat.allocated_amount),
-            Number(updatedCat.spent_amount)
-          )
-        : null;
 
       return res.status(201).json({
         intent: 'add_expense',
         success: true,
-        category,
-        amount: amt,
-        description: expense.description,
-        expense,
-        budgetWarning, // null or { warning, level, message }
+        category: result.category,
+        amount: result.amount,
+        description: result.description,
+        expense: result.expense,
+        budgetWarning: result.budgetWarning,
       });
     }
 
-    // ----------------------------------------------------------------
+    // ── Multiple expenses in one message ─────────────────────────────────
+    case 'add_multiple_expenses': {
+      const expenses = intent.expenses;
+      if (!Array.isArray(expenses) || expenses.length === 0) {
+        return res.status(422).json({ error: 'No expenses found in the request.' });
+      }
+
+      const user = await userService.findUserById(userId);
+      if (!user) return res.status(404).json({ error: 'User not found.' });
+
+      const results = [];
+      const warnings = [];
+      const errors = [];
+
+      for (const exp of expenses) {
+        const result = await processSingleExpense(
+          userId,
+          exp.category,
+          exp.amount,
+          exp.description,
+          validCategories,
+          user
+        );
+
+        if (result.success) {
+          results.push({
+            category: result.category,
+            amount: result.amount,
+            description: result.description,
+            expense: result.expense,
+          });
+          if (result.budgetWarning) warnings.push(result.budgetWarning);
+        } else {
+          // For multi-expense, collect errors but continue processing the rest
+          errors.push({
+            attempted: { category: exp.category, amount: exp.amount },
+            reason: result.error || 'Could not process this expense.',
+            ...(result.data || {}),
+          });
+        }
+      }
+
+      return res.status(results.length > 0 ? 201 : 422).json({
+        intent: 'add_multiple_expenses',
+        success: results.length > 0,
+        added: results,
+        errors: errors.length > 0 ? errors : undefined,
+        budgetWarnings: warnings.length > 0 ? warnings : undefined,
+        summary: `Added ${results.length} of ${expenses.length} expense(s).`,
+      });
+    }
+
+    // ── Remaining total budget ────────────────────────────────────────────
     case 'remaining_budget': {
       const user = await userService.findUserById(userId);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found.' });
-      }
-
-      // remainingBudget = monthlyBudget - SUM(all expenses)   (calculated)
+      if (!user) return res.status(404).json({ error: 'User not found.' });
       const totalSpent = await expenseService.getTotalSpentByUser(userId);
       const remainingBudget = Number(user.monthly_budget) - totalSpent;
-
-      return res.status(200).json({
-        intent: 'remaining_budget',
-        remainingBudget,
-      });
+      return res.status(200).json({ intent: 'remaining_budget', remainingBudget });
     }
 
-    // ----------------------------------------------------------------
+    // ── Remaining budget for one category ────────────────────────────────
     case 'remaining_category_budget': {
-      const { category } = intent;
-
-      if (!SUPPORTED_CATEGORIES.includes(category)) {
-        return res
-          .status(422)
-          .json({ error: `Unknown category: "${category}".` });
+      const category = matchCategory(intent.category, validCategories);
+      if (!category) {
+        return res.status(422).json({
+          error: `Unknown category "${intent.category}". Your categories are: ${validCategories.join(', ')}.`,
+        });
       }
-
       const cat = await categoryService.getCategoryByName(userId, category);
       if (!cat) {
-        return res
-          .status(404)
-          .json({ error: `No "${category}" category found for this user.` });
+        return res.status(404).json({ error: `No "${category}" category found.` });
       }
-
-      // remaining = allocated - spent   (calculated, never stored)
-      const remaining =
-        Number(cat.allocated_amount) - Number(cat.spent_amount);
-
-      return res.status(200).json({
-        intent: 'remaining_category_budget',
-        category,
-        remaining,
-      });
+      const remaining = Number(cat.allocated_amount) - Number(cat.spent_amount);
+      return res.status(200).json({ intent: 'remaining_category_budget', category, remaining });
     }
 
-    // ----------------------------------------------------------------
+    // ── Show all expenses ─────────────────────────────────────────────────
     case 'show_expenses': {
       const expenses = await expenseService.getExpensesByUser(userId);
+      return res.status(200).json({ intent: 'show_expenses', expenses });
+    }
+
+    // ── Show expenses for one category ────────────────────────────────────
+    case 'show_category_expenses': {
+      const category = matchCategory(intent.category, validCategories);
+      if (!category) {
+        return res.status(422).json({
+          error: `Unknown category "${intent.category}". Your categories are: ${validCategories.join(', ')}.`,
+        });
+      }
+      const expenses = await expenseService.getExpensesByCategory(userId, category);
+      return res.status(200).json({ intent: 'show_category_expenses', category, expenses });
+    }
+
+    // ── Show today's expenses ─────────────────────────────────────────────
+    case 'show_today_expenses': {
+      const expenses = await expenseService.getTodayExpensesByUser(userId);
+      return res.status(200).json({ intent: 'show_today_expenses', expenses });
+    }
+
+    // ── Show this week's expenses ─────────────────────────────────────────
+    case 'show_week_expenses': {
+      const expenses = await expenseService.getWeekExpensesByUser(userId);
+      return res.status(200).json({ intent: 'show_week_expenses', expenses });
+    }
+
+    // ── Show this month's expenses ────────────────────────────────────────
+    case 'show_month_expenses': {
+      const expenses = await expenseService.getMonthExpensesByUser(userId);
+      return res.status(200).json({ intent: 'show_month_expenses', expenses });
+    }
+
+    // ── Full budget summary ───────────────────────────────────────────────
+    case 'budget_summary': {
+      const user = await userService.findUserById(userId);
+      if (!user) return res.status(404).json({ error: 'User not found.' });
+      const cats = await categoryService.getCategoriesByUser(userId);
+      const totalSpent = await expenseService.getTotalSpentByUser(userId);
+      const remaining = Number(user.monthly_budget) - totalSpent;
+
+      const categories = (cats || []).map((c) => ({
+        category: c.category_name,
+        allocated: Number(c.allocated_amount),
+        spent: Number(c.spent_amount),
+        remaining: Number(c.allocated_amount) - Number(c.spent_amount),
+      }));
+
       return res.status(200).json({
-        intent: 'show_expenses',
-        expenses, // already sorted newest-first by the service
+        intent: 'budget_summary',
+        monthlyBudget: Number(user.monthly_budget),
+        totalSpent,
+        remainingBudget: remaining,
+        categories,
       });
     }
 
-    // ----------------------------------------------------------------
-    case 'show_category_expenses': {
-      const { category } = intent;
-      if (!SUPPORTED_CATEGORIES.includes(category)) {
-        return res
-          .status(422)
-          .json({ error: `Unknown category: "${category}".` });
-      }
-      const expenses = await expenseService.getExpensesByCategory(
-        userId,
-        category
-      );
-      return res
-        .status(200)
-        .json({ intent: 'show_category_expenses', category, expenses });
-    }
-
-    // ----------------------------------------------------------------
-    case 'show_today_expenses': {
-      const expenses = await expenseService.getTodayExpensesByUser(userId);
-      return res
-        .status(200)
-        .json({ intent: 'show_today_expenses', expenses });
-    }
-
-    // ----------------------------------------------------------------
+    // ── Delete the most recent expense globally ───────────────────────────
     case 'delete_last_expense': {
       const last = await expenseService.getLatestExpense(userId);
-      if (!last) {
-        return res
-          .status(404)
-          .json({ error: 'You have no expenses to delete.' });
+      if (!last) return res.status(404).json({ error: 'You have no expenses to delete.' });
+      await expenseService.deleteExpenseWithCategoryUpdate(last.id);
+      return res.status(200).json({ intent: 'delete_last_expense', success: true, deleted: last });
+    }
+
+    // ── Delete the most recent expense in a specific category ─────────────
+    case 'delete_last_category_expense': {
+      const category = matchCategory(intent.category, validCategories);
+      if (!category) {
+        return res.status(422).json({
+          error: `Unknown category "${intent.category}". Your categories are: ${validCategories.join(', ')}.`,
+        });
       }
-      // Delete it and roll back spent_amount (same transaction as manual delete).
+      const last = await expenseService.getLatestExpenseByCategory(userId, category);
+      if (!last) {
+        return res.status(404).json({ error: `No expenses found in "${category}".` });
+      }
       await expenseService.deleteExpenseWithCategoryUpdate(last.id);
       return res.status(200).json({
-        intent: 'delete_last_expense',
+        intent: 'delete_last_category_expense',
         success: true,
         deleted: last,
       });
     }
 
-    // ----------------------------------------------------------------
-    // The AI couldn't map the message to a supported action.
+    // ── Conversational fallback ───────────────────────────────────────────
+    case 'chat': {
+      return res.status(200).json({
+        intent: 'chat',
+        message: intent.reply || "I'm here to help! Try saying something like 'I spent 500 on groceries' or 'How much budget is left?'",
+      });
+    }
+
+    // ── Unknown / unsupported ─────────────────────────────────────────────
     case 'unknown':
       return res.status(200).json({
         intent: 'unknown',
-        message:
-          "I can help you add expenses, check your remaining budget, or show/delete expenses. Try: \"I spent 500 on pizza\".",
+        message: `I can help you track expenses, check your budget, or show spending history. Try: "I spent 500 on pizza" or "How much is left in Transport?"`,
       });
 
-    // ----------------------------------------------------------------
     default:
-      return res
-        .status(422)
-        .json({ error: `Unsupported intent: "${intent.intent}".` });
+      return res.status(422).json({ error: `Unsupported intent: "${intent.intent}".` });
   }
 });

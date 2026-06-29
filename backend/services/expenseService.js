@@ -334,3 +334,43 @@ export const getExpenseCountByUser = async (userId) => {
   );
   return Number(rows[0].count);
 };
+
+// SELECT expenses from the last 7 days for a user, latest first.
+export const getWeekExpensesByUser = async (userId) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ?
+        AND expense_date >= (NOW() - INTERVAL 7 DAY)
+      ORDER BY expense_date DESC, id DESC`,
+    [userId]
+  );
+  return rows;
+};
+
+// SELECT expenses from the current calendar month for a user, latest first.
+export const getMonthExpensesByUser = async (userId) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ?
+        AND MONTH(expense_date) = MONTH(NOW())
+        AND YEAR(expense_date)  = YEAR(NOW())
+      ORDER BY expense_date DESC, id DESC`,
+    [userId]
+  );
+  return rows;
+};
+
+// SELECT the most recent expense for a user in a specific category.
+export const getLatestExpenseByCategory = async (userId, category) => {
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, category, amount, description, expense_date
+       FROM expenses
+      WHERE user_id = ? AND category = ?
+      ORDER BY expense_date DESC, id DESC
+      LIMIT 1`,
+    [userId, category]
+  );
+  return rows[0];
+};
