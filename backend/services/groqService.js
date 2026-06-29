@@ -1,8 +1,7 @@
-// AI service powered by Groq.
+// AI service — powered by local Ollama (llama3.2:3b).
 // Two responsibilities:
 //   1. interpretMessage  — classify intent + extract expenses using rich schema
 //   2. generateRecommendations — financial advice from spending summary
-import Groq from 'groq-sdk';
 import { config } from '../config/env.js';
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
@@ -290,59 +289,66 @@ User: Hi there!
 { "intent": "chat", "reply": "Hello! I'm here to help you track your budget. Try saying something like 'I spent 500 on groceries'." }`;
 };
 
-// ─── Client ───────────────────────────────────────────────────────────────────
+// ─── Ollama client ────────────────────────────────────────────────────────────
 
-let client;
-const getClient = () => {
-  if (!config.groq.apiKey) {
-    throw new Error('GROQ_API_KEY is not set. Add it to backend/.env to use the chat feature.');
-  }
-  if (!client) {
-    client = new Groq({
-      apiKey: config.groq.apiKey,
-      timeout: 20000,
-      maxRetries: 2,
+const aiChat = async (messages, temperature = 0) => {
+  const url = `${config.ollama.baseUrl}/api/chat`;
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.ollama.model,
+        messages,
+        stream: false,
+        format: 'json',
+        options: { temperature },
+      }),
+      signal: AbortSignal.timeout(60000),
     });
+  } catch (err) {
+    if (err?.name === 'TimeoutError') throw new Error('Ollama request timed out. Is Ollama running?');
+    throw new Error('Cannot reach Ollama. Make sure Ollama is running on localhost:11434.');
   }
-  return client;
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Ollama error ${res.status}: ${body}`);
+  }
+
+  const data = await res.json();
+  const raw = data?.message?.content ?? '';
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // Strip markdown code fences if model wrapped the JSON
+    const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    try {
+      return JSON.parse(stripped);
+    } catch {
+      throw new Error('AI returned malformed JSON. Please try again.');
+    }
+  }
 };
 
 // ─── interpretMessage ─────────────────────────────────────────────────────────
 
 export const interpretMessage = async (message, categories = []) => {
-  const groq = getClient();
-
   const systemPrompt = buildSystemPrompt(
     categories.length > 0
       ? categories
       : ['Food', 'Transport', 'Bills', 'Entertainment', 'Savings', 'Miscellaneous']
   );
 
-  let completion;
-  try {
-    completion = await groq.chat.completions.create({
-      model: config.groq.model,
-      temperature: 0,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message },
-      ],
-    });
-  } catch (err) {
-    if (err?.name === 'APIConnectionTimeoutError') {
-      throw new Error('The AI request timed out. Please try again.');
-    }
-    throw new Error(err?.message || 'The AI service is unavailable.');
-  }
-
-  const raw = completion.choices?.[0]?.message?.content ?? '';
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error('AI returned malformed JSON. Please try again.');
-  }
+  return aiChat(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: message },
+    ],
+    0
+  );
 };
 
 // ─── generateRecommendations ──────────────────────────────────────────────────
@@ -458,34 +464,13 @@ STRICT RULES
 • Numbers inside "detail" strings must come directly from the input data.`;
 
 export const generateRecommendations = async (summary) => {
-  const groq = getClient();
-
-  let completion;
-  try {
-    completion = await groq.chat.completions.create({
-      model: config.groq.model,
-      temperature: 0.4,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: RECOMMENDATIONS_PROMPT },
-        { role: 'user', content: JSON.stringify(summary) },
-      ],
-    });
-  } catch (err) {
-    if (err?.name === 'APIConnectionTimeoutError') {
-      throw new Error('The AI request timed out. Please try again.');
-    }
-    throw new Error(err?.message || 'The AI service is unavailable.');
-  }
-
-  const raw = completion.choices?.[0]?.message?.content ?? '';
-
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error('AI returned malformed JSON.');
-  }
+  const parsed = await aiChat(
+    [
+      { role: 'system', content: RECOMMENDATIONS_PROMPT },
+      { role: 'user', content: JSON.stringify(summary) },
+    ],
+    0.4
+  );
 
   const list = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
   return list

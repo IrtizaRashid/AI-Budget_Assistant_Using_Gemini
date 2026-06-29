@@ -1,6 +1,3 @@
-// Centralised environment-variable loading.
-// Importing this module first guarantees process.env is populated
-// before any other module (e.g. the database pool) reads from it.
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,17 +7,15 @@ export const config = {
   port: process.env.PORT || 5001,
   db: {
     host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT) || 3306, // Railway uses a custom port
+    port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
   },
-  groq: {
-    apiKey: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct',
+  ollama: {
+    baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    model: process.env.OLLAMA_MODEL || 'llama3.2:3b',
   },
-  // Comma-separated list of allowed frontend origins for CORS.
-  // e.g. CORS_ORIGIN=https://your-app.vercel.app
   corsOrigins: (process.env.CORS_ORIGIN || 'http://localhost:5173')
     .split(',')
     .map((o) => o.trim())
