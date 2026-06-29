@@ -291,6 +291,26 @@ User: Hi there!
 
 // ─── Ollama client ────────────────────────────────────────────────────────────
 
+// Pre-load the model on startup so first user message has no cold-start delay.
+export const warmUp = async () => {
+  try {
+    await fetch(`${config.ollama.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.ollama.model,
+        messages: [{ role: 'user', content: 'hi' }],
+        stream: false,
+        keep_alive: '10m',
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    console.log(`✅ Ollama model "${config.ollama.model}" loaded into memory`);
+  } catch {
+    console.warn('⚠️  Ollama warm-up failed — model will load on first request');
+  }
+};
+
 const aiChat = async (messages, temperature = 0) => {
   const url = `${config.ollama.baseUrl}/api/chat`;
   let res;
@@ -303,9 +323,10 @@ const aiChat = async (messages, temperature = 0) => {
         messages,
         stream: false,
         format: 'json',
-        options: { temperature },
+        keep_alive: '10m',
+        options: { temperature, num_predict: 1024 },
       }),
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(120000),
     });
   } catch (err) {
     if (err?.name === 'TimeoutError') throw new Error('Ollama request timed out. Is Ollama running?');

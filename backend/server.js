@@ -21,6 +21,7 @@ import recommendationRoutes from './routes/recommendationRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { warmUp } from './services/groqService.js';
 
 const app = express();
 
@@ -67,5 +68,6 @@ app.use(errorHandler);      // Any thrown error -> JSON error response
 // Bind to 0.0.0.0 so hosted platforms (Render) can route traffic to the app.
 app.listen(config.port, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${config.port} [${config.env}]`);
-  await testConnection();   // Non-fatal MySQL connectivity check
+  await testConnection();
+  warmUp();                 // Pre-load Ollama model into memory (non-blocking)
 });
