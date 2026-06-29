@@ -1,11 +1,39 @@
 // AI Recommendations card for the dashboard.
-// Purely presentational — the Dashboard owns the data + loading/error state
-// and re-fetches whenever an expense changes.
+// Purely presentational — the Dashboard owns the data + loading/error state.
 //
 // Props:
-//   recommendations : string[]
+//   recommendations : { title, detail, category, priority, type }[]
 //   loading         : boolean
-//   error           : boolean (true => show the unavailable message)
+//   error           : boolean
+
+const PRIORITY_STYLES = {
+  critical: 'border-red-500/40 bg-red-500/10',
+  high:     'border-orange-500/40 bg-orange-500/10',
+  medium:   'border-yellow-500/40 bg-yellow-500/10',
+  low:      'border-emerald-500/40 bg-emerald-500/10',
+};
+
+const PRIORITY_DOT = {
+  critical: 'bg-red-500',
+  high:     'bg-orange-400',
+  medium:   'bg-yellow-400',
+  low:      'bg-emerald-400',
+};
+
+const PRIORITY_LABEL = {
+  critical: 'text-red-400',
+  high:     'text-orange-400',
+  medium:   'text-yellow-400',
+  low:      'text-emerald-400',
+};
+
+const TYPE_ICON = {
+  warning: '⚠️',
+  tip:     '💡',
+  praise:  '✅',
+  insight: '📊',
+};
+
 export default function AIRecommendations({
   recommendations = [],
   loading = false,
@@ -23,37 +51,73 @@ export default function AIRecommendations({
           </h2>
         </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center gap-3 py-4 text-slate-400">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-fuchsia-500" />
-          <span className="text-sm">Analysing your spending…</span>
-        </div>
-      )}
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center gap-3 py-4 text-slate-400">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-fuchsia-500" />
+            <span className="text-sm">Analysing your spending…</span>
+          </div>
+        )}
 
-      {/* Error / unavailable */}
-      {!loading && error && (
-        <p className="py-2 text-sm text-slate-500">
-          AI recommendations are temporarily unavailable.
-        </p>
-      )}
+        {/* Error */}
+        {!loading && error && (
+          <p className="py-2 text-sm text-slate-500">
+            AI recommendations are temporarily unavailable.
+          </p>
+        )}
 
-      {/* Empty */}
-      {!loading && !error && recommendations.length === 0 && (
-        <p className="py-2 text-sm text-slate-500">
-          Add a few expenses to get personalised advice.
-        </p>
-      )}
+        {/* Empty */}
+        {!loading && !error && recommendations.length === 0 && (
+          <p className="py-2 text-sm text-slate-500">
+            Add a few expenses to get personalised advice.
+          </p>
+        )}
 
-      {/* Recommendations as bullet points */}
-      {!loading && !error && recommendations.length > 0 && (
-        <ul className="space-y-2">
-          {recommendations.map((rec, i) => (
-            <li key={i} className="flex gap-2 text-sm text-slate-300">
-              <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-fuchsia-500" />
-              <span>{rec}</span>
-            </li>
-          ))}
+        {/* Rich recommendation cards */}
+        {!loading && !error && recommendations.length > 0 && (
+          <ul className="space-y-3">
+            {recommendations.map((rec, i) => {
+              // Support both old string format and new object format
+              if (typeof rec === 'string') {
+                return (
+                  <li key={i} className="flex gap-2 text-sm text-slate-300">
+                    <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-fuchsia-500" />
+                    <span>{rec}</span>
+                  </li>
+                );
+              }
+
+              const priority = rec.priority || 'medium';
+              const type = rec.type || 'insight';
+
+              return (
+                <li
+                  key={i}
+                  className={`rounded-xl border p-3 ${PRIORITY_STYLES[priority] || PRIORITY_STYLES.medium}`}
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-sm">{TYPE_ICON[type] || '📊'}</span>
+                    <span className="flex-1 text-sm font-semibold text-white">
+                      {rec.title}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span
+                        className={`inline-block h-1.5 w-1.5 rounded-full ${PRIORITY_DOT[priority] || 'bg-yellow-400'}`}
+                      />
+                      <span className={`text-xs font-medium uppercase tracking-wide ${PRIORITY_LABEL[priority] || 'text-yellow-400'}`}>
+                        {priority}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-400">{rec.detail}</p>
+                  {rec.category && (
+                    <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                      {rec.category}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
