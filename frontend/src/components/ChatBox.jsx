@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { sendChatMessage } from '../services/chatService.js';
 import { formatPKR } from '../utils/format.js';
 import ConfirmationCard from './ConfirmationCard.jsx';
@@ -137,11 +137,6 @@ export default function ChatBox({
   // Speech Synthesis: read AI replies aloud when ON.
   const [speakResponses, setSpeakResponses] = useState(false);
 
-  // Ref to the bottom of the list so we can auto-scroll on new messages.
-  const bottomRef = useRef(null);
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
 
   // Read text aloud with the browser's Speech Synthesis API.
   const speak = (text) => {
@@ -215,6 +210,7 @@ export default function ChatBox({
     } catch (err) {
       const errorText =
         err.response?.data?.error ||
+        err.message ||
         'Something went wrong talking to the assistant.';
       setMessages((prev) => [
         ...prev,
@@ -356,7 +352,6 @@ export default function ChatBox({
           </div>
         )}
 
-        <div ref={bottomRef} />
       </div>
 
       {/* When the monthly budget is fully used, lock all expense input. */}
