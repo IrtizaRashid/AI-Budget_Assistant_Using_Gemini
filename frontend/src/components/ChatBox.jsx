@@ -343,11 +343,14 @@ export default function ChatBox({
         {/* Loading indicator */}
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-white/10 px-4 py-2 text-sm">
-              <span className="inline-flex gap-1">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400 [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-pink-400 [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-purple-400" />
+            <div className="rounded-2xl bg-white/10 px-4 py-2 text-sm text-slate-400">
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-flex gap-1">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400 [animation-delay:-0.3s]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-pink-400 [animation-delay:-0.15s]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-purple-400" />
+                </span>
+                <span className="text-xs">AI is thinking… (may take 20–40s)</span>
               </span>
             </div>
           </div>
