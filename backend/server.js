@@ -21,7 +21,6 @@ import recommendationRoutes from './routes/recommendationRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
-import { warmUp } from './services/groqService.js';
 
 const app = express();
 
@@ -69,5 +68,4 @@ app.use(errorHandler);      // Any thrown error -> JSON error response
 app.listen(config.port, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${config.port} [${config.env}]`);
   await testConnection();
-  warmUp();                 // Pre-load Ollama model into memory (non-blocking)
 });

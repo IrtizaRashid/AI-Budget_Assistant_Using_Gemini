@@ -1,8 +1,8 @@
-// AI service — powered by local Ollama (llama3.2:3b).
+// AI service — powered by Google Gemini (gemini-2.5-flash).
 // Two responsibilities:
 //   1. interpretMessage  — classify intent + extract expenses using rich schema
 //   2. generateRecommendations — financial advice from spending summary
-import { config } from '../config/env.js';
+import { geminiChat } from './aiService.js';
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
 // Unified prompt: first classifies the intent, then applies the full expense
@@ -289,71 +289,6 @@ User: Hi there!
 { "intent": "chat", "reply": "Hello! I'm here to help you track your budget. Try saying something like 'I spent 500 on groceries'." }`;
 };
 
-// ─── Ollama client ────────────────────────────────────────────────────────────
-
-// Pre-load the model on startup so first user message has no cold-start delay.
-export const warmUp = async () => {
-  try {
-    await fetch(`${config.ollama.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: config.ollama.model,
-        messages: [{ role: 'user', content: 'hi' }],
-        stream: false,
-        keep_alive: '10m',
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-    console.log(`✅ Ollama model "${config.ollama.model}" loaded into memory`);
-  } catch {
-    console.warn('⚠️  Ollama warm-up failed — model will load on first request');
-  }
-};
-
-const aiChat = async (messages, temperature = 0) => {
-  const url = `${config.ollama.baseUrl}/api/chat`;
-  let res;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: config.ollama.model,
-        messages,
-        stream: false,
-        format: 'json',
-        keep_alive: '10m',
-        options: { temperature, num_predict: 1024 },
-      }),
-      signal: AbortSignal.timeout(120000),
-    });
-  } catch (err) {
-    if (err?.name === 'TimeoutError') throw new Error('Ollama request timed out. Is Ollama running?');
-    throw new Error('Cannot reach Ollama. Make sure Ollama is running on localhost:11434.');
-  }
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Ollama error ${res.status}: ${body}`);
-  }
-
-  const data = await res.json();
-  const raw = data?.message?.content ?? '';
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    // Strip markdown code fences if model wrapped the JSON
-    const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    try {
-      return JSON.parse(stripped);
-    } catch {
-      throw new Error('AI returned malformed JSON. Please try again.');
-    }
-  }
-};
-
 // ─── interpretMessage ─────────────────────────────────────────────────────────
 
 export const interpretMessage = async (message, categories = []) => {
@@ -363,13 +298,7 @@ export const interpretMessage = async (message, categories = []) => {
       : ['Food', 'Transport', 'Bills', 'Entertainment', 'Savings', 'Miscellaneous']
   );
 
-  return aiChat(
-    [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: message },
-    ],
-    0
-  );
+  return geminiChat(systemPrompt, message, 0);
 };
 
 // ─── generateRecommendations ──────────────────────────────────────────────────
@@ -485,13 +414,7 @@ STRICT RULES
 • Numbers inside "detail" strings must come directly from the input data.`;
 
 export const generateRecommendations = async (summary) => {
-  const parsed = await aiChat(
-    [
-      { role: 'system', content: RECOMMENDATIONS_PROMPT },
-      { role: 'user', content: JSON.stringify(summary) },
-    ],
-    0.4
-  );
+  const parsed = await geminiChat(RECOMMENDATIONS_PROMPT, JSON.stringify(summary), 0.4);
 
   const list = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
   return list
