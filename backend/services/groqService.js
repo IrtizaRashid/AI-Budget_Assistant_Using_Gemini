@@ -1,4 +1,4 @@
-// AI service — powered by Google Gemini (gemini-2.5-flash).
+// AI workflows — powered by local Ollama through aiService.
 // Two responsibilities:
 //   1. interpretMessage  — classify intent + extract expenses using rich schema
 //   2. generateRecommendations — financial advice from spending summary
@@ -13,9 +13,10 @@ const buildSystemPrompt = (categories) => {
   return `You are a budget assistant. Return ONLY valid JSON. No text outside JSON.
 
 INTENTS — pick one:
-add_expense | remaining_budget | remaining_category_budget | show_expenses | show_category_expenses | show_today_expenses | show_week_expenses | show_month_expenses | budget_summary | delete_last_expense | delete_last_category_expense | chat
+add_expense | income_received | remaining_budget | remaining_category_budget | show_expenses | show_category_expenses | show_today_expenses | show_week_expenses | show_month_expenses | budget_summary | delete_last_expense | delete_last_category_expense | chat
 
 Non-expense responses (return exactly):
+{"intent":"income_received","amount":50000,"source":"salary"}
 {"intent":"remaining_budget"}
 {"intent":"remaining_category_budget","category":"<name>"}
 {"intent":"show_expenses"}
@@ -27,6 +28,13 @@ Non-expense responses (return exactly):
 {"intent":"delete_last_expense"}
 {"intent":"delete_last_category_expense","category":"<name>"}
 {"intent":"chat","reply":"<2 sentences max>"}
+
+INCOME DETECTION:
+- Use income_received when the user says they received, got, earned, or were paid money.
+- Income examples: salary, bonus, freelance payment, business earnings, payment arrived.
+- amount: number or null. Strip Rs/PKR/$. Parse 50,000=50000, 1.5k=1500.
+- source: salary/bonus/freelance/business/payment/income/null.
+- If income amount is missing, return {"intent":"income_received","amount":null,"source":"<source or null>"}.
 
 EXPENSE EXTRACTION (add_expense only):
 Categories: ${categoryList}
@@ -83,6 +91,12 @@ User: I bought pizza yesterday at 7 PM and petrol today at 9 AM.
 
 User: How much budget is left?
 {"intent":"remaining_budget"}
+
+User: My freelance payment of 20,000 arrived.
+{"intent":"income_received","amount":20000,"source":"freelance"}
+
+User: I received my salary.
+{"intent":"income_received","amount":null,"source":"salary"}
 
 User: Hi!
 {"intent":"chat","reply":"Hello! Tell me what you spent and I will record it for you."}

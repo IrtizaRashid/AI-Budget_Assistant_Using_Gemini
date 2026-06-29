@@ -4,6 +4,7 @@ import { formatPKR } from '../utils/format.js';
 import ConfirmationCard from './ConfirmationCard.jsx';
 import DuplicateCard from './DuplicateCard.jsx';
 import VoiceInput from './VoiceInput.jsx';
+import ReallocationReviewCard from './ReallocationReviewCard.jsx';
 
 // Turn the backend's structured response into a friendly assistant message.
 // (The backend does the logic; the frontend only formats for display.)
@@ -102,6 +103,35 @@ const buildAssistantMessage = (data) => {
           data.deleted.description ? ` (${data.deleted.description})` : ''
         }.`,
       };
+    case 'income_received': {
+      if (data.status === 'amount_needed') {
+        return { role: 'assistant', text: `💰 ${data.message}` };
+      }
+      if (data.status === 'review_allocations') {
+        return { 
+          role: 'assistant', 
+          text: `💰 ${data.message}`,
+          type: 'reallocation_review',
+          reallocation: data.reallocation
+        };
+      }
+      return { role: 'assistant', text: data.message };
+    }
+    case 'income_received': {
+      if (data.status === 'missing_amount') {
+        return { role: 'assistant', text: data.message };
+      }
+      const src = data.source ? ` (${data.source})` : '';
+      const cats = Array.isArray(data.categories)
+        ? '\n' + data.categories.map(c =>
+            `  • ${c.category_name}: Rs ${Number(c.allocated_amount).toLocaleString()}`
+          ).join('\n')
+        : '';
+      return {
+        role: 'assistant',
+        text: `✅ Rs ${Number(data.amount).toLocaleString()}${src} added to your budget!\n\nNew total budget: Rs ${Number(data.newBudget).toLocaleString()}\nPrevious budget: Rs ${Number(data.previousBudget).toLocaleString()}\n\nUpdated category allocations:${cats}`,
+      };
+    }
     case 'chat':
       return { role: 'assistant', text: data.message || data.reply || "I'm here to help!" };
     case 'unknown':
@@ -117,6 +147,7 @@ const buildAssistantMessage = (data) => {
 //   onDataChanged  : callback to refresh the dashboard after any change
 //   onWarning      : callback to surface a budget warning toast
 //   onMonthlyLimit : callback when the total monthly budget is exceeded
+//   onReallocationSaved : callback when budget reallocation is saved
 //   budgetFull     : true when the monthly budget is fully utilized (locks input)
 export default function ChatBox({
   userId,
@@ -124,6 +155,7 @@ export default function ChatBox({
   onDataChanged,
   onWarning,
   onMonthlyLimit,
+  onReallocationSaved,
   budgetFull = false,
 }) {
   const [messages, setMessages] = useState([
@@ -197,7 +229,8 @@ export default function ChatBox({
       const changesData =
         data.intent === 'add_expense' ||
         data.intent === 'delete_last_expense' ||
-        data.intent === 'delete_last_category_expense';
+        data.intent === 'delete_last_category_expense' ||
+        (data.intent === 'income_received' && data.success);
       if (changesData && data.status !== 'clarification_needed' && typeof onDataChanged === 'function') {
         onDataChanged();
       }
@@ -295,7 +328,7 @@ export default function ChatBox({
                   : 'bg-white/10 text-slate-200'
               }`}
             >
-              {/* Interactive cards (insufficient budget / duplicate) */}
+              {/* Interactive cards (insufficient budget / duplicate / reallocation) */}
               {msg.type === 'confirmation' ? (
                 <ConfirmationCard
                   userId={userId}
@@ -310,6 +343,12 @@ export default function ChatBox({
                   expense={msg.expense}
                   onChanged={onDataChanged}
                   onWarning={onWarning}
+                />
+              ) : msg.type === 'reallocation_review' ? (
+                <ReallocationReviewCard
+                  reallocation={msg.reallocation}
+                  onSaved={onReallocationSaved}
+                  onCancelled={() => setMessages(prev => [...prev, { role: 'assistant', text: 'Reallocation cancelled.' }])}
                 />
               ) : (
                 <p>{msg.text}</p>

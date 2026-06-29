@@ -1,6 +1,6 @@
 // Chat controller — processes AI intents and executes them against the DB.
 //
-// Flow: React → here → Groq (classify only) → validate → DB → React
+// Flow: React → here → local Ollama (classify only) → validate → DB → React
 //
 // The AI ONLY classifies intent. Every validation, calculation, and DB write
 // happens here in our own code — the AI never touches the database.
@@ -9,6 +9,7 @@ import * as groqService from '../services/groqService.js';
 import * as expenseService from '../services/expenseService.js';
 import * as userService from '../services/userService.js';
 import * as categoryService from '../services/categoryService.js';
+import * as setupService from '../services/setupService.js';
 import { buildBudgetWarning } from '../utils/budgetWarning.js';
 import {
   exceedsMonthlyBudget,
@@ -44,6 +45,48 @@ const matchCategory = (raw, validCategories) => {
     normalised.toLowerCase().includes(c.toLowerCase())
   );
   return partial || null;
+};
+
+const buildIncomeReallocation = async (userId, incomeAmount) => {
+  const user = await userService.findUserById(userId);
+  if (!user) throw new Error('User not found.');
+
+  const categories = await categoryService.getCategoriesByUser(userId);
+  if (!categories || categories.length === 0) {
+    throw new Error('Please set up your budget categories before adding income.');
+  }
+
+  const currentIncome = Number(user.monthly_budget);
+  const addedIncome = Number(incomeAmount);
+  const newTotalIncome = currentIncome + addedIncome;
+
+  let allocated = 0;
+  const rows = categories.map((category, index) => {
+    const currentAmount = Number(category.allocated_amount);
+    const currentPercentage =
+      currentIncome > 0 ? (currentAmount / currentIncome) * 100 : 0;
+    const isLast = index === categories.length - 1;
+    const calculatedAmount = isLast
+      ? Number((newTotalIncome - allocated).toFixed(2))
+      : Number(((newTotalIncome * currentPercentage) / 100).toFixed(2));
+    allocated += calculatedAmount;
+
+    return {
+      category: category.category_name,
+      currentPercentage: Number(currentPercentage.toFixed(2)),
+      calculatedAmount,
+      amount: calculatedAmount,
+      percentage: Number(currentPercentage.toFixed(2)),
+      spent: Number(category.spent_amount),
+    };
+  });
+
+  return {
+    currentIncome,
+    addedIncome,
+    newTotalIncome,
+    rows,
+  };
 };
 
 // Process a single add_expense intent. Returns a response object.
@@ -157,7 +200,7 @@ export const chat = asyncHandler(async (req, res) => {
   // Fetch user's actual categories from DB before calling AI
   const validCategories = await getUserCategories(userId);
 
-  // Ask Groq to classify the message
+  // Ask the local AI model to classify the message
   let intent;
   try {
     intent = await groqService.interpretMessage(message, validCategories);
@@ -172,6 +215,33 @@ export const chat = asyncHandler(async (req, res) => {
   // ─── Intent dispatch ──────────────────────────────────────────────────────
 
   switch (intent.intent) {
+
+    case 'income_received': {
+      const amount = Number(intent.amount);
+
+      if (!amount || amount <= 0) {
+        return res.status(200).json({
+          intent: 'income_received',
+          status: 'clarification_needed',
+          message: 'How much income did you receive?',
+        });
+      }
+
+      try {
+        const allocation = await buildIncomeReallocation(userId, amount);
+        return res.status(200).json({
+          intent: 'income_received',
+          status: 'budget_reallocation_required',
+          message:
+            'New income has been added successfully.\n\nYour budget has been recalculated based on your current income.\n\nPlease review and adjust your category allocations if needed before saving.',
+          allocation,
+        });
+      } catch (err) {
+        return res.status(422).json({
+          error: err.message || 'Could not prepare budget reallocation.',
+        });
+      }
+    }
 
     // ── Add expense(s) — handles both single and multiple via expenses[] array ─
     case 'add_expense': {
@@ -403,6 +473,32 @@ export const chat = asyncHandler(async (req, res) => {
         intent: 'delete_last_category_expense',
         success: true,
         deleted: last,
+      });
+    }
+
+    // ── Income received — add to budget and reallocate categories ────────
+    case 'income_received': {
+      const amount = Number(intent.amount);
+      if (!amount || amount <= 0) {
+        return res.status(200).json({
+          intent: 'income_received',
+          status: 'missing_amount',
+          message: 'How much income did you receive? Please include the amount.',
+        });
+      }
+
+      const result = await setupService.addIncomeForUser({ userId, incomeAmount: amount });
+      const source = intent.source ? ` (${intent.source})` : '';
+
+      return res.status(200).json({
+        intent: 'income_received',
+        success: true,
+        amount,
+        source: intent.source || null,
+        previousBudget: result.previousBudget,
+        newBudget: result.newBudget,
+        categories: result.categories,
+        message: `Rs ${amount.toLocaleString()}${source} added to your budget. Total budget is now Rs ${result.newBudget.toLocaleString()}. All category allocations have been scaled proportionally.`,
       });
     }
 
