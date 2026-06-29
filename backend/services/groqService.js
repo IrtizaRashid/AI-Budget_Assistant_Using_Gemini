@@ -46,6 +46,17 @@ Categories: ${categoryList}
 Schema:
 {"intent":"add_expense","expenses":[{"amount":500,"currency":"PKR","category":"Food","description":"Pizza","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"}]}
 
+EVENT SEGMENTATION:
+Split the input into independent spending events at these words: then, after that, afterwards, next, later, and then, followed by, finally, subsequently.
+Treat each segment as a separate expense. Never merge events. Preserve their order.
+
+Example:
+User: I got food for 500 then went shopping for 300 then visited the zoo for 300.
+{"intent":"add_expense","expenses":[{"amount":500,"currency":"PKR","category":"Food","description":"Food","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"},{"amount":300,"currency":"PKR","category":"Shopping","description":"Shopping","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"},{"amount":300,"currency":"PKR","category":"Entertainment","description":"Zoo","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"}]}
+
+User: I bought petrol for 400, later had dinner for 900, then bought medicine for 250.
+{"intent":"add_expense","expenses":[{"amount":400,"currency":"PKR","category":"Transport","description":"Petrol","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"},{"amount":900,"currency":"PKR","category":"Food","description":"Dinner","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"},{"amount":250,"currency":"PKR","category":"Healthcare","description":"Medicine","merchant":null,"payment_method":null,"location":null,"date":null,"time":null,"confidence":0.97,"ambiguity":false,"reasoning_type":"direct"}]}
+
 ORDERED MAPPING ("respectively" / "in order" / "one by one"):
 When the user lists multiple activities AND multiple amounts with a word like "respectively", "in order", or "one by one":
 - Step 1: Extract activities in the order they appear.
