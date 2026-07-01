@@ -716,7 +716,7 @@ export default function ChatBox({
                   <span className="h-2 w-2 animate-bounce rounded-full bg-pink-400 [animation-delay:-0.15s]" />
                   <span className="h-2 w-2 animate-bounce rounded-full bg-purple-400" />
                 </span>
-                <span className="text-xs">AI is thinking… (may take 20–40s)</span>
+                <span className="text-xs">AI is thinking...</span>
               </span>
             </div>
           </div>

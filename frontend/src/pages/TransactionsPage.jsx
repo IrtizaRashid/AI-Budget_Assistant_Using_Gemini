@@ -120,11 +120,8 @@ export default function TransactionsPage() {
 
       {/* Transactions List */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-        <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <div className="border-b border-white/10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Transaction History</h2>
-          <button className="text-sm text-slate-400 hover:text-white transition-colors">
-            Export
-          </button>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-10">

@@ -38,7 +38,9 @@ app.set('trust proxy', 1);
 // no Origin (curl, health checks, same-origin) are allowed too. Disallowed
 // origins are denied gracefully (no CORS headers) rather than throwing a 500.
 const isAllowedOrigin = (origin) =>
-  config.corsOrigins.includes(origin) || /\.vercel\.app$/.test(origin);
+  config.corsOrigins.includes(origin) ||
+  /^http:\/\/(localhost|127\.0\.0\.1):517\d$/.test(origin || '') ||
+  /\.vercel\.app$/.test(origin);
 
 app.use(
   cors({

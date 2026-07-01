@@ -30,10 +30,10 @@ export default function InvestmentsPage() {
     loadInvestments();
   }, [userId]);
 
-  const totalInvested = summary.total_invested || 0;
-  const currentValue = summary.current_value || 0;
-  const totalReturn = currentValue - totalInvested;
-  const returnPercentage = totalInvested > 0 ? ((totalReturn / totalInvested) * 100).toFixed(2) : 0;
+  const totalInvested = Number(summary.totalInvested ?? summary.total_invested ?? 0);
+  const currentValue = Number(summary.totalCurrentValue ?? summary.current_value ?? 0);
+  const totalReturn = Number(summary.totalPL ?? summary.unrealizedGL ?? currentValue - totalInvested);
+  const returnPercentage = Number(summary.totalReturn ?? (totalInvested > 0 ? ((currentValue - totalInvested) / totalInvested) * 100 : 0)).toFixed(2);
 
   return (
     <div className="p-6">
@@ -60,7 +60,7 @@ export default function InvestmentsPage() {
               📊
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-400">Current Value</p>
+              <p className="text-sm font-medium text-slate-400">Portfolio Value</p>
               <p className="text-2xl font-bold text-white">{formatPKR(currentValue)}</p>
             </div>
           </div>
@@ -109,30 +109,46 @@ export default function InvestmentsPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-white/5 text-slate-400">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Symbol</th>
-                  <th className="px-6 py-3 font-medium">Quantity</th>
-                  <th className="px-6 py-3 font-medium">Avg Cost</th>
-                  <th className="px-6 py-3 font-medium">Current Price</th>
+                  <th className="px-6 py-3 font-medium">Investment</th>
+                  <th className="px-6 py-3 font-medium">Type</th>
+                  <th className="px-6 py-3 font-medium">Invested</th>
                   <th className="px-6 py-3 font-medium">Value</th>
-                  <th className="px-6 py-3 font-medium">Return</th>
+                  <th className="px-6 py-3 font-medium">P&L</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {portfolio.map((investment) => {
-                  const value = investment.quantity * investment.current_price;
-                  const cost = investment.quantity * investment.avg_cost;
-                  const returnVal = value - cost;
-                  const returnPct = cost > 0 ? ((returnVal / cost) * 100).toFixed(2) : 0;
+                  const invested = Number(investment.invested_amount || 0);
+                  const value = Number(investment.current_value || 0);
+                  const returnVal = Number(investment.profit_loss ?? value - invested);
+                  const returnPct = Number(investment.return_pct ?? (invested > 0 ? (returnVal / invested) * 100 : 0)).toFixed(2);
                   
                   return (
                     <tr key={investment.id} className="transition hover:bg-white/5">
-                      <td className="px-6 py-4 font-medium text-white">{investment.symbol}</td>
-                      <td className="px-6 py-4 text-slate-300">{investment.quantity}</td>
-                      <td className="px-6 py-4 text-slate-400">{formatPKR(investment.avg_cost)}</td>
-                      <td className="px-6 py-4 text-slate-400">{formatPKR(investment.current_price)}</td>
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-white">{investment.name}</p>
+                        {investment.quantity !== null && investment.quantity !== undefined && (
+                          <p className="text-xs text-slate-500">
+                            Qty {investment.quantity}
+                            {investment.avg_purchase_price ? ` at ${formatPKR(investment.avg_purchase_price)}` : ''}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-slate-300">{investment.type || 'Other'}</td>
+                      <td className="px-6 py-4 text-slate-400">{formatPKR(invested)}</td>
                       <td className="px-6 py-4 font-semibold text-white">{formatPKR(value)}</td>
                       <td className={`px-6 py-4 font-semibold ${returnVal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {returnVal >= 0 ? '+' : ''}{formatPKR(returnVal)} ({returnPct}%)
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          investment.status === 'active'
+                            ? 'bg-emerald-500/15 text-emerald-300'
+                            : 'bg-slate-500/15 text-slate-300'
+                        }`}>
+                          {investment.status || 'active'}
+                        </span>
                       </td>
                     </tr>
                   );

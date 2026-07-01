@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { getIncome, createIncome, deleteIncomeRecord } from '../services/api.js';
+import { getIncome, deleteIncomeRecord } from '../services/api.js';
 import { formatPKR, formatDate } from '../utils/format.js';
 
 export default function IncomePage() {
@@ -8,8 +8,6 @@ export default function IncomePage() {
   const userId = user?.id;
   const [incomeRecords, setIncomeRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({ source: '', amount: '', date: '' });
 
   // Search + filter
   const [search, setSearch] = useState('');
@@ -30,23 +28,6 @@ export default function IncomePage() {
   useEffect(() => {
     loadIncome();
   }, [userId]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await createIncome({
-        user_id: userId,
-        source: formData.source,
-        amount: parseFloat(formData.amount),
-        date: formData.date || new Date().toISOString().split('T')[0],
-      });
-      setShowAddForm(false);
-      setFormData({ source: '', amount: '', date: '' });
-      loadIncome();
-    } catch (error) {
-      console.error('Failed to add income:', error);
-    }
-  };
 
   const handleDelete = async (id) => {
     try {
@@ -78,15 +59,8 @@ export default function IncomePage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Income</h1>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-2 text-sm font-medium text-white hover:from-fuchsia-500 hover:to-pink-500 transition-all"
-        >
-          <span>+</span>
-          <span>Add Income</span>
-        </button>
       </div>
 
       {/* Summary Card */}
@@ -103,61 +77,6 @@ export default function IncomePage() {
           </div>
         </div>
       </div>
-
-      {/* Add Income Form */}
-      {showAddForm && (
-        <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
-          <h3 className="mb-4 text-lg font-semibold text-white">Add New Income</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Source</label>
-              <input
-                type="text"
-                value={formData.source}
-                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                placeholder="e.g., Salary, Freelance"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Amount</label>
-              <input
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="0.00"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Date</label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="flex-1 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-2 text-sm font-medium text-white hover:from-fuchsia-500 hover:to-pink-500 transition-all"
-              >
-                Add Income
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Search + Filter toolbar */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
@@ -197,7 +116,7 @@ export default function IncomePage() {
           </div>
         ) : filtered.length === 0 ? (
           <p className="px-6 py-10 text-center text-slate-500">
-            {incomeRecords.length === 0 ? 'No income records yet.' : 'No income matches your filters.'}
+            {incomeRecords.length === 0 ? 'No income records yet. Add one using the AI Assistant.' : 'No income matches your filters.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -215,7 +134,7 @@ export default function IncomePage() {
                   <tr key={record.id} className="transition hover:bg-white/5">
                     <td className="px-6 py-4 font-medium text-slate-200">{record.source}</td>
                     <td className="px-6 py-4 font-semibold text-emerald-400">+{formatPKR(record.amount)}</td>
-                    <td className="px-6 py-4 text-slate-400">{formatDate(record.date)}</td>
+                    <td className="px-6 py-4 text-slate-400">{formatDate(record.received_date)}</td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => handleDelete(record.id)}

@@ -67,7 +67,7 @@ export const getTransactionHistory = async (userId) => {
        NULL             AS investment_id,
        e.expense_date   AS date,
        NULL             AS time,
-       e.created_at
+       e.expense_date   AS created_at
      FROM expenses e
      WHERE e.user_id = ?`,
     [id]

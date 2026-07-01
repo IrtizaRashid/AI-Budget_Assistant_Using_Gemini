@@ -46,7 +46,10 @@ export default function ExpensesPage() {
   // Distinct category names for the filter dropdown (from both budget + records).
   const categoryNames = useMemo(() => {
     const names = new Set();
-    categories.forEach((c) => c.category_name && names.add(c.category_name));
+    categories.forEach((c) => {
+      const name = c.category_name ?? c.category;
+      if (name) names.add(name);
+    });
     expenses.forEach((e) => e.category && names.add(e.category));
     return [...names].sort();
   }, [categories, expenses]);

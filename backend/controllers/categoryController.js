@@ -55,6 +55,11 @@ export const getCategories = asyncHandler(async (req, res) => {
     const allocated = Number(c.allocated_amount);
     const spent = Number(c.spent_amount);
     return {
+      id: c.id,
+      user_id: c.user_id,
+      category_name: c.category_name,
+      allocated_amount: allocated,
+      spent_amount: spent,
       category: c.category_name,
       allocated,
       spent,

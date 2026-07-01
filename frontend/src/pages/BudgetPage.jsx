@@ -10,14 +10,17 @@ export default function BudgetPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [error, setError] = useState('');
 
   const loadCategories = async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await getCategories(userId);
       setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load categories:', error);
+      setError(error.response?.data?.error || 'Failed to load budget categories.');
     } finally {
       setLoading(false);
     }
@@ -29,21 +32,43 @@ export default function BudgetPage() {
 
   const handleEdit = (category) => {
     setEditing(category.id);
-    setEditValue(category.allocated_amount.toString());
+    setEditValue(String(category.allocated_amount ?? category.allocated ?? 0));
   };
 
   const handleSave = async (categoryId) => {
+    const newAmount = Number(editValue);
+    if (!Number.isFinite(newAmount) || newAmount < 0) {
+      setError('Enter a valid allocation amount.');
+      return;
+    }
+
     try {
+      setError('');
+      const nextCategories = categories.map((category) => {
+        const allocated =
+          category.id === categoryId
+            ? newAmount
+            : Number(category.allocated_amount ?? category.allocated ?? 0);
+        return {
+          category: category.category_name ?? category.category,
+          allocatedAmount: allocated,
+        };
+      });
+      const monthlyBudget = nextCategories.reduce(
+        (sum, category) => sum + Number(category.allocatedAmount || 0),
+        0
+      );
+
       await updateBudgetAllocation({
-        user_id: userId,
-        category_id: categoryId,
-        new_amount: parseFloat(editValue),
+        monthlyBudget,
+        categories: nextCategories,
       });
       setEditing(null);
       setEditValue('');
       loadCategories();
     } catch (error) {
       console.error('Failed to update budget:', error);
+      setError(error.response?.data?.error || 'Failed to update budget allocation.');
     }
   };
 
@@ -52,8 +77,8 @@ export default function BudgetPage() {
     setEditValue('');
   };
 
-  const totalAllocated = categories.reduce((sum, cat) => sum + parseFloat(cat.allocated_amount || 0), 0);
-  const totalSpent = categories.reduce((sum, cat) => sum + parseFloat(cat.spent_amount || 0), 0);
+  const totalAllocated = categories.reduce((sum, cat) => sum + Number(cat.allocated_amount ?? cat.allocated ?? 0), 0);
+  const totalSpent = categories.reduce((sum, cat) => sum + Number(cat.spent_amount ?? cat.spent ?? 0), 0);
   const totalRemaining = totalAllocated - totalSpent;
 
   return (
@@ -104,6 +129,11 @@ export default function BudgetPage() {
         <div className="border-b border-white/10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Budget Categories</h2>
         </div>
+        {error && (
+          <div className="border-b border-red-500/20 bg-red-500/10 px-6 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center justify-center py-10">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
@@ -113,18 +143,19 @@ export default function BudgetPage() {
         ) : (
           <div className="divide-y divide-white/5">
             {categories.map((category) => {
-              const spent = parseFloat(category.spent_amount || 0);
-              const allocated = parseFloat(category.allocated_amount || 0);
+              const spent = Number(category.spent_amount ?? category.spent ?? 0);
+              const allocated = Number(category.allocated_amount ?? category.allocated ?? 0);
               const remaining = allocated - spent;
               const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
               const isOverBudget = spent > allocated;
+              const name = category.category_name ?? category.category;
 
               return (
                 <div key={category.id} className="px-6 py-4">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="rounded-full bg-fuchsia-500/15 px-3 py-1 text-sm font-medium text-fuchsia-300">
-                        {category.category_name}
+                        {name}
                       </span>
                       {isOverBudget && (
                         <span className="text-xs font-medium text-red-400">Over budget</span>
