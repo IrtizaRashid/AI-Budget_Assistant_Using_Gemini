@@ -1,4 +1,4 @@
-// AI pipeline — powered by local Ollama through aiService.
+// AI pipeline — powered by Google Gemini through aiService.
 // The AI works through 7 reasoning stages internally and outputs the
 // final backend-compatible JSON. One call, no intermediate round-trips.
 import { geminiChat } from './aiService.js';
@@ -370,7 +370,7 @@ CONVERSATIONAL:
 
 // ─── interpretMessage ─────────────────────────────────────────────────────────
 
-export const interpretMessage = async (message, categories = [], activeLoans = []) => {
+export const interpretMessage = async (message, categories = [], activeLoans = [], apiKey = null) => {
   const systemPrompt = buildSystemPrompt(
     categories.length > 0
       ? categories
@@ -378,7 +378,7 @@ export const interpretMessage = async (message, categories = [], activeLoans = [
     activeLoans
   );
 
-  return geminiChat(systemPrompt, message, 0);
+  return geminiChat(systemPrompt, message, 0, apiKey);
 };
 
 // ─── generateRecommendations ──────────────────────────────────────────────────
@@ -405,8 +405,8 @@ RULES:
 - Cap at 5 total recommendations. If more than 5 categories need flagging, keep the worst ones.
 - Never return an empty recommendations array.`;
 
-export const generateRecommendations = async (summary) => {
-  const parsed = await geminiChat(RECOMMENDATIONS_PROMPT, JSON.stringify(summary), 0.4);
+export const generateRecommendations = async (summary, apiKey = null) => {
+  const parsed = await geminiChat(RECOMMENDATIONS_PROMPT, JSON.stringify(summary), 0.4, apiKey);
 
   const fixCurrency = (s) => String(s).replace(/\$\s?/g, 'Rs ').trim();
 

@@ -76,8 +76,12 @@ app.use(notFound);          // Unknown route -> 404
 app.use(errorHandler);      // Any thrown error -> JSON error response
 
 // ---- Start server ----
-// Bind to 0.0.0.0 so hosted platforms (Render) can route traffic to the app.
-app.listen(config.port, '0.0.0.0', async () => {
-  console.log(`🚀 Server running on port ${config.port} [${config.env}]`);
-  await testConnection();
-});
+// Vercel imports the app from backend/api/index.js, so only listen locally.
+if (!process.env.VERCEL) {
+  app.listen(config.port, '0.0.0.0', async () => {
+    console.log(`Server running on port ${config.port} [${config.env}]`);
+    await testConnection();
+  });
+}
+
+export default app;

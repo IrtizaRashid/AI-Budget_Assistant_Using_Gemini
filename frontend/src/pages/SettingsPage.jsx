@@ -270,6 +270,16 @@ export default function SettingsPage() {
               onChange={(v) => updateAi(setAiVoice, 'ai_voice', v)}
             />
           </Row>
+          <Row label="Gemini API key" hint={user?.hasGeminiKey ? 'A key is saved for your account' : 'Required for AI actions'}>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-gemini-key-modal', {
+                detail: { message: 'Paste a new Gemini API key for this account.' },
+              }))}
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+            >
+              Change key
+            </button>
+          </Row>
         </Section>
 
         {/* Notifications */}

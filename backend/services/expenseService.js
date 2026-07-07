@@ -267,7 +267,7 @@ export const getTodayExpensesByUser = async (userId) => {
   const [rows] = await pool.execute(
     `SELECT id, user_id, category, amount, description, expense_date
        FROM expenses
-      WHERE user_id = ? AND DATE(expense_date) = CURDATE()
+      WHERE user_id = ? AND expense_date::date = CURRENT_DATE
       ORDER BY expense_date DESC, id DESC`,
     [userId]
   );
@@ -285,7 +285,7 @@ export const findRecentDuplicate = async (userId, category, amount, description)
         AND category = ?
         AND amount = ?
         AND description = ?
-        AND expense_date >= (NOW() - INTERVAL 10 MINUTE)
+        AND expense_date >= (NOW() - INTERVAL '10 minutes')
       ORDER BY expense_date DESC
       LIMIT 1`,
     [userId, category, amount, description]
@@ -310,10 +310,10 @@ export const getLatestExpense = async (userId) => {
 // COALESCE guarantees 0 (not NULL) when the user has no expenses.
 export const getTotalSpentByUser = async (userId) => {
   const [rows] = await pool.execute(
-    'SELECT COALESCE(SUM(amount), 0) AS totalSpent FROM expenses WHERE user_id = ?',
+    'SELECT COALESCE(SUM(amount), 0) AS "totalSpent" FROM expenses WHERE user_id = ?',
     [userId]
   );
-  // mysql2 returns DECIMAL/SUM as a string — convert to a real number.
+  // SUM over NUMERIC comes back as a string — convert to a real number.
   return Number(rows[0].totalSpent);
 };
 
@@ -353,7 +353,7 @@ export const getWeekExpensesByUser = async (userId) => {
     `SELECT id, user_id, category, amount, description, expense_date
        FROM expenses
       WHERE user_id = ?
-        AND expense_date >= (NOW() - INTERVAL 7 DAY)
+        AND expense_date >= (NOW() - INTERVAL '7 days')
       ORDER BY expense_date DESC, id DESC`,
     [userId]
   );
@@ -366,8 +366,7 @@ export const getMonthExpensesByUser = async (userId) => {
     `SELECT id, user_id, category, amount, description, expense_date
        FROM expenses
       WHERE user_id = ?
-        AND MONTH(expense_date) = MONTH(NOW())
-        AND YEAR(expense_date)  = YEAR(NOW())
+        AND date_trunc('month', expense_date) = date_trunc('month', NOW())
       ORDER BY expense_date DESC, id DESC`,
     [userId]
   );

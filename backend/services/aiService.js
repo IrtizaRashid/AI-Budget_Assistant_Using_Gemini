@@ -1,4 +1,5 @@
-// AI service — powered by local Ollama.
+// AI service — powered by Google Gemini via @google/genai.
+import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/env.js';
 
 // Attempt to close truncated JSON so partial responses don't hard-fail.
@@ -34,44 +35,54 @@ const extractJSON = (raw) => {
   throw new Error('AI returned invalid JSON that could not be repaired.');
 };
 
-// Shared fetch helper
-const ollamaFetch = async (body) => {
-  const url = `${config.ollama.baseUrl}/api/chat`;
-  let res;
+// Lazily construct the client so a missing key fails at call time with a
+// clear message instead of crashing the server on boot.
+const clients = new Map();
+const makeGeminiError = (code, message) => {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+};
+
+const getClient = (apiKey) => {
+  const key = apiKey || config.gemini.apiKey;
+  if (!key) {
+    throw makeGeminiError('GEMINI_KEY_MISSING', 'Please add your Gemini API key to use AI features.');
+  }
+  if (!clients.has(key)) clients.set(key, new GoogleGenAI({ apiKey: key }));
+  return clients.get(key);
+};
+
+// Shared request helper
+const geminiFetch = async (systemPrompt, userContent, { temperature, json, apiKey }) => {
+  const ai = getClient(apiKey);
+  let response;
   try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    response = await ai.models.generateContent({
+      model: config.gemini.model,
+      contents: userContent,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature,
+        ...(json ? { responseMimeType: 'application/json' } : {}),
+      },
     });
-  } catch {
-    throw new Error('Cannot reach Ollama. Make sure Ollama is running on localhost:11434.');
+  } catch (err) {
+    const msg = String(err?.message || err);
+    if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg)) {
+      throw makeGeminiError('GEMINI_QUOTA', 'Your Gemini key quota is exhausted. Paste a new key or try again later.');
+    }
+    if (/API key|API_KEY_INVALID|PERMISSION_DENIED|401|403/i.test(msg)) {
+      throw makeGeminiError('GEMINI_KEY_INVALID', 'Your Gemini API key is invalid. Please paste a valid key.');
+    }
+    throw new Error(`Gemini error: ${msg}`);
   }
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Ollama error ${res.status}: ${body}`);
-  }
-  return res;
+  return response.text ?? '';
 };
 
 // JSON-output call — used by intent classifier and recommendation engine.
-export const geminiChat = async (systemPrompt, userContent, temperature = 0) => {
-  const res = await ollamaFetch({
-    model: config.ollama.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userContent },
-    ],
-    stream: false,
-    format: 'json',
-    options: { temperature, num_predict: 400, num_thread: 8 },
-  });
-
-  let data;
-  try { data = await res.json(); }
-  catch { data = { message: { content: await res.text().catch(() => '') } }; }
-
-  const raw = data?.message?.content ?? '';
+export const geminiChat = async (systemPrompt, userContent, temperature = 0, apiKey = null) => {
+  const raw = await geminiFetch(systemPrompt, userContent, { temperature, json: true, apiKey });
   const parsed = extractJSON(raw);
   if (!parsed || typeof parsed !== 'object') throw new Error('AI response was not a valid JSON object.');
   return parsed;
@@ -79,20 +90,7 @@ export const geminiChat = async (systemPrompt, userContent, temperature = 0) => 
 
 // Plain-text call — used by the Universal Query Engine for natural-language answers.
 // Returns a raw string, not JSON.
-export const geminiText = async (systemPrompt, userContent, temperature = 0.3) => {
-  const res = await ollamaFetch({
-    model: config.ollama.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userContent },
-    ],
-    stream: false,
-    options: { temperature, num_predict: 1200, num_thread: 8 },
-  });
-
-  let data;
-  try { data = await res.json(); }
-  catch { data = { message: { content: '' } }; }
-
-  return (data?.message?.content ?? '').trim();
+export const geminiText = async (systemPrompt, userContent, temperature = 0.3, apiKey = null) => {
+  const raw = await geminiFetch(systemPrompt, userContent, { temperature, json: false, apiKey });
+  return raw.trim();
 };

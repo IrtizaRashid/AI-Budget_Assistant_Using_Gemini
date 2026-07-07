@@ -1,18 +1,21 @@
 # database/
 
-SQL scripts and schema definitions will live here in a later step.
+Postgres schema for Supabase.
 
-**Step 1: intentionally empty** — no tables are created yet.
+## Setup
 
-Planned for future steps:
-- `schema.sql` — table definitions (users, budgets, expenses, categories…)
-- `seed.sql` — sample/seed data
-- migration scripts
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open **SQL Editor → New query**.
+3. Paste the full contents of [`supabase_schema.sql`](./supabase_schema.sql) and click **Run**.
 
-The backend connects to MySQL via `backend/database/db.js` using the
-credentials in `backend/.env`. Create the database referenced by `DB_NAME`
-before running queries:
+This creates all tables, indexes, triggers, and row-level security policies.
 
-```sql
-CREATE DATABASE budget_ai;
-```
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `supabase_schema.sql` | Canonical schema — run once per Supabase project |
+
+## Connection
+
+The backend connects via the **Transaction pooler** connection string (port **6543**), set as `DATABASE_URL` in `backend/.env`. Get it from Supabase → **Project Dashboard → Connect → Transaction pooler**.

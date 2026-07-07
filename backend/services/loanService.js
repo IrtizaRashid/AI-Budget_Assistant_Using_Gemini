@@ -1,47 +1,7 @@
 import pool from '../database/db.js';
 import { increaseBudget, decreaseBudget } from './userService.js';
 
-const ensureTable = async () => {
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS loans (
-      id              INT AUTO_INCREMENT PRIMARY KEY,
-      user_id         INT NOT NULL,
-      type            ENUM('given','taken') NOT NULL,
-      person_name     VARCHAR(255) NOT NULL,
-      amount          DECIMAL(12,2) NOT NULL,
-      original_amount DECIMAL(12,2) NOT NULL,
-      description     VARCHAR(255) DEFAULT NULL,
-      status          ENUM('active','paid') DEFAULT 'active',
-      loan_date       DATE NOT NULL,
-      loan_time       TIME DEFAULT NULL,
-      paid_date       DATE DEFAULT NULL,
-      notes           TEXT DEFAULT NULL,
-      created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-  try { await pool.execute(`ALTER TABLE loans ADD COLUMN loan_time TIME DEFAULT NULL`); } catch (e) { if (e.errno !== 1060) throw e; }
-};
-
-const ensurePaymentsTable = async () => {
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS loan_payments (
-      id             INT AUTO_INCREMENT PRIMARY KEY,
-      loan_id        INT NOT NULL,
-      amount         DECIMAL(12,2) NOT NULL,
-      payment_date   DATE NOT NULL,
-      payment_time   TIME DEFAULT NULL,
-      payment_method VARCHAR(100) DEFAULT NULL,
-      notes          TEXT DEFAULT NULL,
-      created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (loan_id) REFERENCES loans(id) ON DELETE CASCADE
-    )
-  `);
-};
-
 export const addLoan = async ({ userId, type, personName, amount, description = null, loanDate = null, loanTime = null }) => {
-  await ensureTable();
   const date = loanDate || new Date().toISOString().split('T')[0];
   const [result] = await pool.execute(
     `INSERT INTO loans (user_id, type, person_name, amount, original_amount, description, loan_date, loan_time)
@@ -53,7 +13,6 @@ export const addLoan = async ({ userId, type, personName, amount, description = 
 };
 
 export const getLoansByUser = async (userId) => {
-  await ensureTable();
   const [rows] = await pool.execute(
     `SELECT * FROM loans WHERE user_id = ? ORDER BY loan_date DESC, created_at DESC`,
     [userId]
@@ -92,7 +51,6 @@ export const deleteLoan = async (loanId) => {
 };
 
 export const getLoanSummaryByUser = async (userId) => {
-  await ensureTable();
   const [rows] = await pool.execute(
     `SELECT
        COALESCE(SUM(CASE WHEN type='given' AND status='active' THEN amount ELSE 0 END), 0) AS owed_to_me,
@@ -115,7 +73,6 @@ export const getLoanSummaryByUser = async (userId) => {
 // and increases the user's monthly_budget (cash recovery — not income).
 // Returns { loan, payment, remaining, newBudget, fullyPaid }
 export const repayLoan = async (loanId, repaidAmount, { paymentDate = null, paymentTime = null, paymentMethod = null, notes = null } = {}) => {
-  await ensurePaymentsTable();
   const loan = await getLoanById(loanId);
   if (!loan) throw new Error('Loan not found.');
 
@@ -172,7 +129,6 @@ export const repayLoan = async (loanId, repaidAmount, { paymentDate = null, paym
 
 // Get full repayment history for a loan.
 export const getLoanPayments = async (loanId) => {
-  await ensurePaymentsTable();
   const [rows] = await pool.execute(
     `SELECT * FROM loan_payments WHERE loan_id = ? ORDER BY payment_date DESC, created_at DESC`,
     [loanId]

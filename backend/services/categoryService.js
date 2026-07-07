@@ -2,22 +2,19 @@
 import pool from '../database/db.js';
 import { recordMiscTransaction } from './transactionService.js';
 
-// Bulk-INSERT an array of categories in one query.
-// `pool.query` (not execute) is used because it supports the
-// nested-array bulk-insert form: VALUES ?  ->  [[...], [...]]
+// Bulk-INSERT an array of categories in one multi-row statement.
 export const createCategories = async (categories) => {
-  const values = categories.map((c) => [
-    c.user_id,
-    c.category_name,
-    c.allocated_amount ?? 0,
-    c.spent_amount ?? 0,
-  ]);
+  const params = [];
+  const rows = categories.map((c) => {
+    params.push(c.user_id, c.category_name, c.allocated_amount ?? 0, c.spent_amount ?? 0);
+    return '(?, ?, ?, ?)';
+  });
 
   const [result] = await pool.query(
     `INSERT INTO budget_categories
        (user_id, category_name, allocated_amount, spent_amount)
-     VALUES ?`,
-    [values]
+     VALUES ${rows.join(', ')}`,
+    params
   );
 
   return result.affectedRows;

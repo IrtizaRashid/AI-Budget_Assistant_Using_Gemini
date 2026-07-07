@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase.js';
 
 const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -7,27 +8,51 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT token to every request automatically.
-api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+// Attach Supabase access token to every request automatically.
+api.interceptors.request.use(async (config) => {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const code = error.response?.data?.code;
+    if (['GEMINI_KEY_MISSING', 'GEMINI_KEY_INVALID', 'GEMINI_QUOTA'].includes(code)) {
+      window.dispatchEvent(new CustomEvent('gemini-key-required', {
+        detail: {
+          code,
+          message: error.response?.data?.error || error.response?.data?.message,
+        },
+      }));
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ---- Auth endpoints ----
 
-// POST /api/auth/register
 export const registerApi = async (payload) => {
   const { data } = await api.post('/auth/register', payload);
   return data;
 };
 
-// POST /api/auth/login
 export const loginApi = async (payload) => {
   const { data } = await api.post('/auth/login', payload);
+  return data;
+};
+
+export const verifySignupApi = async (payload) => {
+  const { data } = await api.post('/auth/verify-signup', payload);
+  return data;
+};
+
+export const resendSignupApi = async (payload) => {
+  const { data } = await api.post('/auth/resend-signup', payload);
   return data;
 };
 
@@ -202,6 +227,11 @@ export const createSplitExpense = async (payload) => {
 // POST /api/users/:userId/reset-month
 export const resetMonth = async (userId) => {
   const { data } = await api.post(`/users/${userId}/reset-month`);
+  return data;
+};
+
+export const saveGeminiKey = async (apiKey) => {
+  const { data } = await api.put('/users/me/gemini-key', { apiKey });
   return data;
 };
 

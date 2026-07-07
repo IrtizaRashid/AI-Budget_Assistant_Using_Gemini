@@ -14,10 +14,41 @@ export const createUser = async ({ name, monthly_budget }) => {
 // SELECT a single user by id (or undefined if not found).
 export const findUserById = async (id) => {
   const [rows] = await pool.execute(
-    'SELECT id, name, monthly_budget, created_at FROM users WHERE id = ?',
+    'SELECT id, auth_id, name, email, monthly_budget, gemini_api_key, created_at, updated_at FROM users WHERE id = ?',
     [id]
   );
   return rows[0];
+};
+
+export const findOrCreateSupabaseUser = async ({ authId, email, name }) => {
+  const [existing] = await pool.execute(
+    'SELECT id, auth_id, name, email, monthly_budget, gemini_api_key, created_at, updated_at FROM users WHERE auth_id = ?',
+    [authId]
+  );
+  if (existing[0]) return existing[0];
+
+  const displayName = name || email?.split('@')[0] || 'User';
+  const [result] = await pool.execute(
+    'INSERT INTO users (auth_id, name, email) VALUES (?, ?, ?)',
+    [authId, displayName, email]
+  );
+  return findUserById(result.insertId);
+};
+
+export const getGeminiApiKey = async (userId) => {
+  const [rows] = await pool.execute(
+    'SELECT gemini_api_key FROM users WHERE id = ?',
+    [userId]
+  );
+  return rows[0]?.gemini_api_key || null;
+};
+
+export const saveGeminiApiKey = async (userId, apiKey) => {
+  await pool.execute(
+    'UPDATE users SET gemini_api_key = ? WHERE id = ?',
+    [apiKey, userId]
+  );
+  return findUserById(userId);
 };
 
 // Increase a user's monthly_budget (loan repayment received — cash inflow).

@@ -1,6 +1,6 @@
 // Chat controller — processes AI intents and executes them against the DB.
 //
-// Flow: React → here → local Ollama (classify only) → validate → DB → React
+// Flow: React → here → Gemini (classify only) → validate → DB → React
 //
 // The AI ONLY classifies intent. Every validation, calculation, and DB write
 // happens here in our own code — the AI never touches the database.
@@ -206,13 +206,18 @@ export const chat = asyncHandler(async (req, res) => {
   // Fetch user's categories and active loans before calling AI
   const validCategories = await getUserCategories(userId);
   const activeLoans = (await loanService.getLoansByUser(userId)).filter(l => l.status === 'active');
+  const geminiApiKey = await userService.getGeminiApiKey(userId);
 
   // Ask the local AI model to classify the message
   let intent;
   try {
-    intent = await groqService.interpretMessage(message, validCategories, activeLoans);
+    intent = await groqService.interpretMessage(message, validCategories, activeLoans, geminiApiKey);
   } catch (err) {
-    return res.status(502).json({ error: err.message || 'The AI service is unavailable.' });
+    const status = err.code?.startsWith('GEMINI_') ? 402 : 502;
+    return res.status(status).json({
+      error: err.message || 'The AI service is unavailable.',
+      code: err.code,
+    });
   }
 
   if (!intent || typeof intent !== 'object' || !intent.intent) {
@@ -889,7 +894,16 @@ export const chat = asyncHandler(async (req, res) => {
       const rawQuery = String(intent.query || message);
       const { modules, dateRange, person } = analyzeQuery(rawQuery);
       const structuredData = await collectQueryData(userId, modules, dateRange, person);
-      const answer = await answerQuery(rawQuery, structuredData, dateRange, person);
+      let answer;
+      try {
+        answer = await answerQuery(rawQuery, structuredData, dateRange, person, geminiApiKey);
+      } catch (err) {
+        const status = err.code?.startsWith('GEMINI_') ? 402 : 502;
+        return res.status(status).json({
+          error: err.message || 'The AI service is unavailable.',
+          code: err.code,
+        });
+      }
       return res.status(200).json({
         intent: 'ai_query',
         success: true,

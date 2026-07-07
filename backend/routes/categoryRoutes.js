@@ -5,11 +5,12 @@ import {
   getCategories,
   transferToSavings,
 } from '../controllers/categoryController.js';
+import { authenticate, attachAuthenticatedUserId } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.post('/', createCategories);           // POST /api/categories
-router.post('/transfer', transferToSavings);  // POST /api/categories/transfer
-router.get('/:userId', getCategories);        // GET  /api/categories/:userId
+router.post('/', authenticate, attachAuthenticatedUserId, createCategories);           // POST /api/categories
+router.post('/transfer', authenticate, attachAuthenticatedUserId, transferToSavings);  // POST /api/categories/transfer
+router.get('/:userId', authenticate, attachAuthenticatedUserId, getCategories);        // GET  /api/categories/:userId
 
 export default router;

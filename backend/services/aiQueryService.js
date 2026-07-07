@@ -34,7 +34,7 @@ const sanitize = (data) => JSON.stringify(data, (key, value) => {
   return value;
 }, 2);
 
-export const answerQuery = async (query, structuredData, dateRange, person) => {
+export const answerQuery = async (query, structuredData, dateRange, person, apiKey = null) => {
   const contextNote = [
     dateRange ? `Note: The user is asking specifically about: ${dateRange.label}.` : '',
     person    ? `Note: The user is asking about a person named "${person}".` : '',
@@ -42,5 +42,5 @@ export const answerQuery = async (query, structuredData, dateRange, person) => {
 
   const userContent = `${contextNote ? contextNote + '\n\n' : ''}FINANCIAL DATA:\n${sanitize(structuredData)}\n\nUSER'S QUESTION: ${query}`;
 
-  return geminiText(SYSTEM_PROMPT, userContent, 0.3);
+  return geminiText(SYSTEM_PROMPT, userContent, 0.3, apiKey);
 };

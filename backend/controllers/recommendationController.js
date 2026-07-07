@@ -79,11 +79,13 @@ export const getRecommendations = asyncHandler(async (req, res) => {
   // --- Ask the AI to analyse the summary ---
   // Failures are surfaced as 502 so the frontend can show its fallback message.
   try {
-    const recommendations = await groqService.generateRecommendations(summary);
+    const geminiApiKey = await userService.getGeminiApiKey(userId);
+    const recommendations = await groqService.generateRecommendations(summary, geminiApiKey);
     return res.status(200).json({ recommendations });
   } catch (err) {
+    const status = err.code?.startsWith('GEMINI_') ? 402 : 502;
     return res
-      .status(502)
-      .json({ error: err.message || 'AI recommendations are unavailable.' });
+      .status(status)
+      .json({ error: err.message || 'AI recommendations are unavailable.', code: err.code });
   }
 });

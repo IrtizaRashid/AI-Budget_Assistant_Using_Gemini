@@ -4,11 +4,11 @@ import {
   setupBudget,
   updateBudgetAllocation,
 } from '../controllers/setupController.js';
-import { authenticate } from '../middleware/authMiddleware.js';
+import { authenticate, attachAuthenticatedUserId } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.post('/setup-budget', authenticate, setupBudget); // POST /api/setup-budget
-router.put('/budget-allocation', authenticate, updateBudgetAllocation); // PUT /api/budget-allocation
+router.post('/setup-budget', authenticate, attachAuthenticatedUserId, setupBudget); // POST /api/setup-budget
+router.put('/budget-allocation', authenticate, attachAuthenticatedUserId, updateBudgetAllocation); // PUT /api/budget-allocation
 
 export default router;

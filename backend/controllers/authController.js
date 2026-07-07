@@ -1,100 +1,130 @@
-// Authentication controller - handles registration, login, logout, and user verification
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import * as authService from '../services/authService.js';
+import { config } from '../config/env.js';
 
-// POST /api/auth/register
-// Register a new user
+const supabaseAuthRequest = async (path, body) => {
+  const url = `${config.supabase.url.replace(/\/$/, '')}/auth/v1${path}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      apikey: config.supabase.anonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data.msg || data.message || data.error_description || data.error || 'Supabase Auth request failed.';
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
+  return data;
+};
+
+const resendSignupEmail = (email) => supabaseAuthRequest('/resend', { email, type: 'signup' });
+
 export const register = asyncHandler(async (req, res) => {
-  const { full_name, email, password, confirm_password, monthly_budget } = req.body;
-
-  // Validation
-  if (!full_name || !email || !password || !confirm_password) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  }
-
-  if (password !== confirm_password) {
-    return res.status(400).json({ error: 'Passwords do not match' });
-  }
-
-  // Email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Invalid email format' });
+  const { email, password, name } = req.body;
+  if (!email || !password || !name) {
+    return res.status(400).json({ error: 'name, email, and password are required.' });
   }
 
   try {
-    const user = await authService.registerUser({
-      full_name,
+    const data = await supabaseAuthRequest('/signup', {
       email,
       password,
-      monthly_budget: monthly_budget || 0,
+      data: { full_name: name },
     });
-
-    res.status(201).json({
-      message: 'Registration successful',
-      user,
-    });
+    return res.status(200).json({ success: true, user: data.user || null });
   } catch (error) {
-    if (error.code === 'EMAIL_EXISTS') {
-      return res.status(409).json({ error: error.message });
+    const message = String(error.message || '');
+    const canTryResend =
+      error.status === 504 ||
+      message.toLowerCase().includes('already registered') ||
+      message.toLowerCase().includes('already exists');
+
+    if (canTryResend) {
+      try {
+        await resendSignupEmail(email);
+        return res.status(200).json({
+          success: true,
+          resent: true,
+          message: 'A verification code has been sent if this email can receive signup confirmations.',
+        });
+      } catch (resendError) {
+        return res.status(resendError.status || error.status || 502).json({
+          error: resendError.message || error.message,
+          details: resendError.payload || error.payload,
+        });
+      }
     }
-    throw error;
+
+    return res.status(error.status || 502).json({ error: error.message, details: error.payload });
   }
 });
 
-// POST /api/auth/login
-// Login user
 export const login = asyncHandler(async (req, res) => {
-  const { email, password, rememberMe } = req.body;
-
-  // Validation
+  const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
+    return res.status(400).json({ error: 'email and password are required.' });
   }
 
   try {
-    const result = await authService.loginUser({
-      email,
-      password,
-      rememberMe: rememberMe || false,
-    });
-
-    res.status(200).json({
-      message: 'Login successful',
-      user: result.user,
-      token: result.token,
-    });
+    const data = await supabaseAuthRequest('/token?grant_type=password', { email, password });
+    return res.status(200).json(data);
   } catch (error) {
-    if (error.code === 'INVALID_CREDENTIALS') {
-      return res.status(401).json({ error: error.message });
-    }
-    throw error;
+    return res.status(error.status || 502).json({ error: error.message, details: error.payload });
   }
 });
 
-// POST /api/auth/logout
-// Logout user (client-side token removal)
+export const verifySignup = asyncHandler(async (req, res) => {
+  const { email, token } = req.body;
+  if (!email || !token) {
+    return res.status(400).json({ error: 'email and token are required.' });
+  }
+
+  try {
+    const data = await supabaseAuthRequest('/verify', { email, token, type: 'signup' });
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(error.status || 502).json({ error: error.message, details: error.payload });
+  }
+});
+
+export const resendSignup = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'email is required.' });
+  }
+
+  try {
+    const data = await resendSignupEmail(email);
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(error.status || 502).json({ error: error.message, details: error.payload });
+  }
+});
+
 export const logout = asyncHandler(async (req, res) => {
-  // In a JWT-based system, logout is handled on the client side by removing the token
-  // This endpoint is mainly for consistency and future session management
   res.status(200).json({ message: 'Logout successful' });
 });
 
-// GET /api/auth/me
-// Get current user info
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  // req.user is set by authMiddleware
   const userId = req.user.userId;
-
   const user = await authService.getUserById(userId);
 
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  res.status(200).json({ user });
+  const { gemini_api_key, ...safeUser } = user;
+  res.status(200).json({
+    user: {
+      ...safeUser,
+      hasGeminiKey: Boolean(gemini_api_key),
+    },
+  });
 });

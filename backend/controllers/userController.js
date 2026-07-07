@@ -29,7 +29,7 @@ export const createUser = asyncHandler(async (req, res) => {
 // Starts a new month: clears all expenses and resets category spending to 0,
 // keeping the user's budget and category allocations.
 export const resetMonth = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
+  const userId = req.user.userId;
 
   const user = await userService.findUserById(userId);
   if (!user) {
@@ -41,4 +41,16 @@ export const resetMonth = asyncHandler(async (req, res) => {
     success: true,
     message: 'New month started. Expenses cleared and category spending reset.',
   });
+});
+
+export const saveGeminiKey = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { apiKey } = req.body;
+
+  if (!apiKey || !String(apiKey).trim()) {
+    return res.status(400).json({ error: 'Gemini API key is required.' });
+  }
+
+  await userService.saveGeminiApiKey(userId, String(apiKey).trim());
+  res.status(200).json({ success: true, hasGeminiKey: true });
 });

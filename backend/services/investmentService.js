@@ -1,50 +1,4 @@
 // Investment service — portfolio management, buy/sell, dividends, budget sync.
-// All investments are funded exclusively from the Savings category.
-import pool from '../database/db.js';
-import { increaseBudget, decreaseBudget } from './userService.js';
-import { getSavingsRemaining, deductFromSavings, creditToSavings } from './categoryService.js';
-
-// ─── Table bootstrap ──────────────────────────────────────────────────────────
-
-export const ensureTables = async () => {
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS investments (
-      id                 INT AUTO_INCREMENT PRIMARY KEY,
-      user_id            INT            NOT NULL,
-      name               VARCHAR(255)   NOT NULL,
-      type               VARCHAR(100)   NOT NULL DEFAULT 'Other',
-      invested_amount    DECIMAL(15,2)  NOT NULL DEFAULT 0,
-      current_value      DECIMAL(15,2)  NOT NULL DEFAULT 0,
-      quantity           DECIMAL(15,6)  DEFAULT NULL,
-      avg_purchase_price DECIMAL(15,2)  DEFAULT NULL,
-      status             ENUM('active','sold','closed') NOT NULL DEFAULT 'active',
-      purchase_date      DATE           DEFAULT NULL,
-      purchase_time      TIME           DEFAULT NULL,
-      notes              TEXT           DEFAULT NULL,
-      created_at         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-      updated_at         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS investment_transactions (
-      id               INT AUTO_INCREMENT PRIMARY KEY,
-      investment_id    INT            NOT NULL,
-      user_id          INT            NOT NULL,
-      type             ENUM('purchase','sale','dividend','interest','capital_gain','capital_loss') NOT NULL,
-      amount           DECIMAL(15,2)  NOT NULL,
-      quantity         DECIMAL(15,6)  DEFAULT NULL,
-      price_per_unit   DECIMAL(15,2)  DEFAULT NULL,
-      profit_loss      DECIMAL(15,2)  DEFAULT 0,
-      transaction_date DATE           DEFAULT NULL,
-      transaction_time TIME           DEFAULT NULL,
-      notes            TEXT           DEFAULT NULL,
-      created_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (investment_id) REFERENCES investments(id) ON DELETE CASCADE,
-      FOREIGN KEY (user_id)       REFERENCES users(id)       ON DELETE CASCADE
-    )
-  `);
-};
 
 // ─── VALID TYPES ─────────────────────────────────────────────────────────────
 
@@ -80,7 +34,6 @@ export const buyInvestment = async ({
   purchaseDate = null, purchaseTime = null, notes = null,
   skipSavingsCheck = false,   // true when called after a transfer has already been confirmed
 }) => {
-  await ensureTables();
   const investType = normalizeType(type || name);
   const amt = Number(amount);
   const qty = quantity ? Number(quantity) : null;
@@ -162,7 +115,6 @@ export const sellInvestment = async ({
   investmentId, userId, saleAmount, saleQuantity = null,
   saleDate = null, saleTime = null, notes = null,
 }) => {
-  await ensureTables();
   const [[inv]] = await pool.execute('SELECT * FROM investments WHERE id = ? AND user_id = ?', [investmentId, userId]);
   if (!inv) throw new Error('Investment not found.');
   if (inv.status !== 'active') throw new Error('Investment is already sold/closed.');
@@ -231,7 +183,6 @@ export const addDividend = async ({
   amount, type = 'dividend',
   txDate = null, txTime = null, notes = null,
 }) => {
-  await ensureTables();
   const amt = Number(amount);
 
   // Resolve investmentId from name if not provided
@@ -279,7 +230,6 @@ export const addDividend = async ({
 // ─── QUERIES ─────────────────────────────────────────────────────────────────
 
 export const getPortfolio = async (userId) => {
-  await ensureTables();
   const [rows] = await pool.execute(
     `SELECT * FROM investments WHERE user_id = ? ORDER BY created_at DESC`,
     [userId]
@@ -298,7 +248,6 @@ export const getPortfolio = async (userId) => {
 };
 
 export const getInvestmentById = async (id, userId) => {
-  await ensureTables();
   const [[row]] = await pool.execute(
     'SELECT * FROM investments WHERE id = ? AND user_id = ?',
     [id, userId]
@@ -307,7 +256,6 @@ export const getInvestmentById = async (id, userId) => {
 };
 
 export const findActiveByName = async (userId, name) => {
-  await ensureTables();
   const [rows] = await pool.execute(
     `SELECT * FROM investments WHERE user_id = ? AND LOWER(name) = LOWER(?) AND status = 'active' LIMIT 1`,
     [userId, name]
@@ -316,7 +264,6 @@ export const findActiveByName = async (userId, name) => {
 };
 
 export const getInvestmentTransactions = async (userId) => {
-  await ensureTables();
   const [rows] = await pool.execute(
     `SELECT it.*, i.name AS investment_name, i.type AS investment_type
        FROM investment_transactions it
@@ -329,7 +276,6 @@ export const getInvestmentTransactions = async (userId) => {
 };
 
 export const getInvestmentSummary = async (userId) => {
-  await ensureTables();
 
   const [[activeRow]] = await pool.execute(
     `SELECT
@@ -378,3 +324,4 @@ export const getInvestmentSummary = async (userId) => {
     totalPL: unrealizedGL + realizedPL,
   };
 };
+

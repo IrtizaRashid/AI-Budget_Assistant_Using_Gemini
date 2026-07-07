@@ -1,33 +1,5 @@
 // Unified transaction history — read-aggregation across all source tables.
-// This is a READ-ONLY layer. Source tables are authoritative.
-// Misc events without a dedicated table (budget transfers etc.) are stored
-// in the `misc_transactions` table and merged here.
 import pool from '../database/db.js';
-
-// ─── Misc transactions table (budget transfers, manual adjustments, etc.) ─────
-
-export const ensureMiscTable = async () => {
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS misc_transactions (
-      id            INT AUTO_INCREMENT PRIMARY KEY,
-      user_id       INT NOT NULL,
-      type          VARCHAR(64) NOT NULL,
-      amount        DECIMAL(12,2) NOT NULL DEFAULT 0,
-      category      VARCHAR(255) DEFAULT NULL,
-      description   VARCHAR(512) DEFAULT NULL,
-      person        VARCHAR(255) DEFAULT NULL,
-      investment_name VARCHAR(255) DEFAULT NULL,
-      loan_id       INT DEFAULT NULL,
-      investment_id INT DEFAULT NULL,
-      currency      VARCHAR(8) DEFAULT 'PKR',
-      notes         TEXT DEFAULT NULL,
-      tx_date       DATE NOT NULL,
-      tx_time       TIME DEFAULT NULL,
-      created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-};
 
 // Record a misc transaction (budget transfers, savings transfers, etc.)
 export const recordMiscTransaction = async ({
@@ -35,7 +7,6 @@ export const recordMiscTransaction = async ({
   person = null, investmentName = null, loanId = null, investmentId = null,
   notes = null, txDate = null, txTime = null,
 }) => {
-  await ensureMiscTable();
   const date = txDate || new Date().toISOString().split('T')[0];
   const [res] = await pool.execute(
     `INSERT INTO misc_transactions
@@ -219,7 +190,6 @@ export const getTransactionHistory = async (userId) => {
   // ── Misc transactions (budget transfers, savings transfers, etc.) ─────────────
   let miscTxs = [];
   try {
-    await ensureMiscTable();
     const [rows] = await pool.execute(
       `SELECT
          type,
@@ -276,3 +246,4 @@ export const getTransactionHistory = async (userId) => {
 
   return all;
 };
+

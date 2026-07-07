@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getMe } from '../services/api.js';
+import { supabase, isSupabaseConfigured } from '../services/supabase.js';
 
 const AuthContext = createContext(null);
 
@@ -7,42 +8,68 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, check if a valid token exists and restore the session.
-  useEffect(() => {
-    const token =
-      localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  const refreshUser = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      setUser(null);
+      return null;
+    }
 
-    if (!token) {
+    // Retry logic for backend API call to handle timing issues
+    let retries = 3;
+    let lastError;
+    while (retries > 0) {
+      try {
+        const profile = await getMe();
+        setUser(profile.user);
+        return profile.user;
+      } catch (error) {
+        lastError = error;
+        if (error.response?.status === 401 && retries > 1) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 200));
+          retries--;
+          continue;
+        }
+        break;
+      }
+    }
+    
+    // If all retries failed, set user to null
+    console.error('Failed to refresh user profile after retries:', lastError);
+    setUser(null);
+    return null;
+  };
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
       setLoading(false);
       return;
     }
 
-    getMe()
-      .then((data) => setUser(data.user))
-      .catch(() => {
-        localStorage.removeItem('authToken');
-        sessionStorage.removeItem('authToken');
-      })
+    refreshUser()
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      refreshUser().catch(() => setUser(null));
+    });
+
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
-  const login = (userData, token, rememberMe) => {
-    if (rememberMe) {
-      localStorage.setItem('authToken', token);
-    } else {
-      sessionStorage.setItem('authToken', token);
-    }
-    setUser(userData);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    sessionStorage.removeItem('authToken');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, refreshUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );
