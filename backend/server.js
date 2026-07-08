@@ -50,8 +50,10 @@ app.use(
       }
       return callback(null, false); // deny without erroring
     },
+    credentials: true,
   })
 );
+app.options('*', cors()); // Explicitly handle preflight requests
 app.use(express.json());    // Parse incoming JSON request bodies
 
 // ---- Routes ----
