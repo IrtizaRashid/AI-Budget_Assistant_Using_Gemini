@@ -24,7 +24,12 @@ const supabaseAuthRequest = async (path, body) => {
   return data;
 };
 
-const resendSignupEmail = (email) => supabaseAuthRequest('/resend', { email, type: 'signup' });
+const sendSignupOtp = (email, name) =>
+  supabaseAuthRequest('/otp', {
+    email,
+    create_user: true,
+    data: { full_name: name },
+  });
 
 export const register = asyncHandler(async (req, res) => {
   const { email, password, name } = req.body;
@@ -33,11 +38,7 @@ export const register = asyncHandler(async (req, res) => {
   }
 
   try {
-    const data = await supabaseAuthRequest('/signup', {
-      email,
-      password,
-      data: { full_name: name },
-    });
+    const data = await sendSignupOtp(email, name);
     return res.status(200).json({ success: true, user: data.user || null });
   } catch (error) {
     const message = String(error.message || '');
@@ -48,7 +49,7 @@ export const register = asyncHandler(async (req, res) => {
 
     if (canTryResend) {
       try {
-        await resendSignupEmail(email);
+        await sendSignupOtp(email, name);
         return res.status(200).json({
           success: true,
           resent: true,
@@ -87,7 +88,7 @@ export const verifySignup = asyncHandler(async (req, res) => {
   }
 
   try {
-    const data = await supabaseAuthRequest('/verify', { email, token, type: 'signup' });
+    const data = await supabaseAuthRequest('/verify', { email, token, type: 'email' });
     return res.status(200).json(data);
   } catch (error) {
     return res.status(error.status || 502).json({ error: error.message, details: error.payload });
@@ -101,7 +102,7 @@ export const resendSignup = asyncHandler(async (req, res) => {
   }
 
   try {
-    const data = await resendSignupEmail(email);
+    const data = await sendSignupOtp(email);
     return res.status(200).json(data);
   } catch (error) {
     return res.status(error.status || 502).json({ error: error.message, details: error.payload });

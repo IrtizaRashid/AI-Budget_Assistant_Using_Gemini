@@ -1,5 +1,13 @@
 // Investment service — portfolio management, buy/sell, dividends, budget sync.
 
+import pool from '../database/db.js';
+import {
+  getSavingsRemaining,
+  deductFromSavings,
+  creditToSavings,
+} from './categoryService.js';
+import { decreaseBudget, increaseBudget } from './userService.js';
+
 // ─── VALID TYPES ─────────────────────────────────────────────────────────────
 
 export const INVESTMENT_TYPES = [

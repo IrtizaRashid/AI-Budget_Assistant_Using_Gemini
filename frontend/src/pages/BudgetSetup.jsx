@@ -28,7 +28,7 @@ const buildRecommendations = (budget) => {
 
 export default function BudgetSetup() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [step, setStep] = useState('input');
   const [budget, setBudget] = useState('');
@@ -89,7 +89,10 @@ export default function BudgetSetup() {
       setLoading(true);
       await setupBudget(payload);
       setSuccess('Budget setup completed successfully.');
-      setTimeout(() => navigate('/dashboard'), 1500);
+      // Refresh the profile so user.monthly_budget is no longer 0 —
+      // otherwise the /setup route guard bounces us straight back here.
+      await refreshUser();
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(
         err.response?.data?.error ||

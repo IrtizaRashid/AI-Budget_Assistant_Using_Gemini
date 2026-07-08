@@ -7,6 +7,7 @@ import { authErrorMessage } from '../utils/authErrors.js';
 import Alert from '../components/Alert.jsx';
 
 const MIN_PASSWORD_LENGTH = 6;
+const OTP_LENGTH = 8;
 const AUTH_TIMEOUT_MS = 90000;
 
 const withTimeout = (promise, label) =>
@@ -85,6 +86,9 @@ export default function Register() {
     const token = otp.trim();
 
     if (!token) return setError('Verification code is required.');
+    if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(token)) {
+      return setError(`Verification code must be ${OTP_LENGTH} digits.`);
+    }
 
     try {
       setLoading(true);
@@ -101,6 +105,13 @@ export default function Register() {
           access_token: session.access_token,
           refresh_token: session.refresh_token,
         });
+
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: form.password,
+          data: { full_name: form.name.trim() },
+        });
+
+        if (updateError) throw updateError;
       }
 
       setNotice('Verification successful! Logging you in...');
@@ -152,7 +163,7 @@ export default function Register() {
         </h1>
         <p className="mt-1 text-center text-sm text-slate-400">
           {showOtpInput
-            ? `Enter the 6-digit code sent to ${form.email}`
+            ? `Enter the ${OTP_LENGTH}-digit code sent to ${form.email}`
             : 'Sign up once with your email and password.'}
         </p>
 
@@ -167,8 +178,10 @@ export default function Register() {
                 type="text"
                 name="otp"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="123456"
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
+                placeholder="12345678"
+                inputMode="numeric"
+                maxLength={OTP_LENGTH}
                 className="w-full text-center tracking-widest text-lg font-bold rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
               />
             </div>
