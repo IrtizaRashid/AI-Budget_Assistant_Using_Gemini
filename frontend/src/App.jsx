@@ -4,6 +4,8 @@ import BudgetSetup from './pages/BudgetSetup.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AppLayout from './layouts/AppLayout.jsx';
 import IncomePage from './pages/IncomePage.jsx';
@@ -79,6 +81,8 @@ export default function App() {
       {/* Public routes */}
       <Route path="/login"    element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
+      <Route path="/forgot-password" element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/upload-demo" element={<UploadPage />} />
 
       {/* Budget setup — protected but not in sidebar layout.

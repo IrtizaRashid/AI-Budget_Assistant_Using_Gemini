@@ -15,6 +15,7 @@ import * as investmentService from '../services/investmentService.js';
 import { analyzeQuery } from '../services/queryAnalyzer.js';
 import { collectQueryData } from '../services/queryDataCollector.js';
 import { answerQuery } from '../services/aiQueryService.js';
+import * as memoryManager from '../services/memoryManager.js';
 import { buildBudgetWarning } from '../utils/budgetWarning.js';
 import {
   exceedsMonthlyBudget,
@@ -192,11 +193,27 @@ const processSingleExpense = async (userId, rawCategory, amount, description, va
   };
 };
 
+// Derive a short assistant-facing text from a response payload, so the
+// conversation transcript (memory) captures what actually happened.
+const extractAssistantText = (body) => {
+  if (!body || typeof body !== 'object') return '';
+  if (body.answer) return String(body.answer);
+  if (body.message) return String(body.message);
+  if (body.summary) return String(body.summary);
+  if (body.intent === 'add_expense' && body.success && body.category) {
+    return `Added ${body.category} expense of Rs ${body.amount}${body.description ? ` (${body.description})` : ''}.`;
+  }
+  if (body.intent === 'remaining_budget') return `Remaining budget: Rs ${body.remainingBudget}.`;
+  if (body.intent === 'remaining_category_budget') return `${body.category} remaining: Rs ${body.remaining}.`;
+  if (body.error) return `⚠️ ${body.error}`;
+  return body.intent ? `(${body.intent})` : '';
+};
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
-// POST /api/chat   body: { userId, message }
+// POST /api/chat   body: { userId, message, sessionId? }
 export const chat = asyncHandler(async (req, res) => {
-  const { userId, message, _skipSavingsCheck = false } = req.body;
+  const { userId, message, sessionId: rawSessionId, _skipSavingsCheck = false } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'userId is required.' });
   if (!message || !String(message).trim()) {
@@ -208,10 +225,42 @@ export const chat = asyncHandler(async (req, res) => {
   const activeLoans = (await loanService.getLoansByUser(userId)).filter(l => l.status === 'active');
   const geminiApiKey = await userService.getGeminiApiKey(userId);
 
-  // Ask the local AI model to classify the message
+  // ── Memory: resolve/create the session, record the user turn, build the
+  //    conversation context that lets the AI resolve "he/it/that" and continue.
+  let sessionId = null;
+  let conversationContext = '';
+  try {
+    const session = await memoryManager.ensureSession(userId, rawSessionId);
+    sessionId = session.id;
+    conversationContext = await memoryManager.buildConversationContext(userId, sessionId);
+    await memoryManager.mem.addMessage(sessionId, 'user', message);
+    await memoryManager.autoTitleIfNeeded(userId, sessionId, message);
+  } catch {
+    // Memory is best-effort — a failure here must not break the chat.
+  }
+
+  // Wrap res.json so every response carries the sessionId and persists the
+  // assistant reply into the conversation transcript.
+  const origJson = res.json.bind(res);
+  res.json = (payload) => {
+    const body = payload && typeof payload === 'object' ? { ...payload, sessionId } : payload;
+    if (sessionId) {
+      const assistantText = extractAssistantText(body);
+      (async () => {
+        try {
+          if (assistantText) await memoryManager.mem.addMessage(sessionId, 'assistant', assistantText);
+          await memoryManager.mem.touchSession(userId, sessionId);
+          await memoryManager.maybeSummarize(userId, sessionId, geminiApiKey);
+        } catch { /* best-effort persistence */ }
+      })();
+    }
+    return origJson(body);
+  };
+
+  // Ask the AI model to classify the message (with conversation memory).
   let intent;
   try {
-    intent = await groqService.interpretMessage(message, validCategories, activeLoans, geminiApiKey);
+    intent = await groqService.interpretMessage(message, validCategories, activeLoans, geminiApiKey, conversationContext);
   } catch (err) {
     const status = err.code?.startsWith('GEMINI_') ? 402 : 502;
     return res.status(status).json({
@@ -338,6 +387,14 @@ export const chat = asyncHandler(async (req, res) => {
             merchant: exp.merchant || null,
             payment_method: exp.payment_method || null,
           });
+          // Layer 3 learning: remember which category this user files a given
+          // merchant under. Repeated use bumps confidence; buildMemoryBlock
+          // then surfaces it so future messages apply the preference.
+          if (exp.merchant) {
+            memoryManager
+              .learnMerchantCategory(userId, exp.merchant, result.category)
+              .catch(() => {});
+          }
           if (result.budgetWarning) warnings.push(result.budgetWarning);
         } else {
           if (result.monthlyLimitExceeded && resolvedExpenses.length === 1) {

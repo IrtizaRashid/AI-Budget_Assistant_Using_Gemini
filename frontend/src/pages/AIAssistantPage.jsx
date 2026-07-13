@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getCategories } from '../services/api.js';
 import ChatBox from '../components/ChatBox.jsx';
+import ChatHistorySidebar from '../components/ChatHistorySidebar.jsx';
 
 export default function AIAssistantPage() {
   const { user } = useAuth();
@@ -43,7 +44,11 @@ export default function AIAssistantPage() {
         <h1 className="text-2xl font-bold text-white">AI Assistant</h1>
       </div>
 
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-[260px_1fr]">
+        {/* Conversation history — hidden on small screens */}
+        <div className="hidden h-[28rem] md:block">
+          <ChatHistorySidebar />
+        </div>
         <ChatBox
           userId={userId}
           categories={categories}

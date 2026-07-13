@@ -189,6 +189,59 @@ CREATE TABLE IF NOT EXISTS misc_transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_misc_tx_user ON misc_transactions(user_id);
 
+-- ============================================================
+--  AI MEMORY SYSTEM
+-- ============================================================
+
+-- ------------------------------------------------------------
+--  Table 10: ai_sessions  (one chat conversation / thread)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ai_sessions (
+  id            INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id       INT            NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title         VARCHAR(255)   NOT NULL DEFAULT 'New chat',
+  summary       TEXT           NULL,        -- rolling summary of older messages
+  status        VARCHAR(16)    NOT NULL DEFAULT 'active' CHECK (status IN ('active','archived')),
+  created_at    TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  last_activity TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_sessions_user ON ai_sessions(user_id, last_activity DESC);
+DROP TRIGGER IF EXISTS trg_ai_sessions_updated_at ON ai_sessions;
+CREATE TRIGGER trg_ai_sessions_updated_at BEFORE UPDATE ON ai_sessions
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ------------------------------------------------------------
+--  Table 11: ai_messages  (every turn in a session)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ai_messages (
+  id         INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  session_id INT           NOT NULL REFERENCES ai_sessions(id) ON DELETE CASCADE,
+  role       VARCHAR(16)   NOT NULL CHECK (role IN ('user','assistant','system')),
+  content    TEXT          NOT NULL,
+  created_at TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_messages_session ON ai_messages(session_id, created_at);
+
+-- ------------------------------------------------------------
+--  Table 12: ai_memory  (long-term, reusable preferences)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ai_memory (
+  id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id     INT            NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  memory_type VARCHAR(64)    NOT NULL,   -- e.g. preference, merchant_category, currency
+  key         VARCHAR(255)   NOT NULL,   -- e.g. 'Texas Fries', 'currency'
+  value       TEXT           NOT NULL,   -- e.g. 'Entertainment', 'PKR'
+  confidence  NUMERIC(4,3)   NOT NULL DEFAULT 0.500,
+  created_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, memory_type, key)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_memory_user ON ai_memory(user_id, memory_type);
+DROP TRIGGER IF EXISTS trg_ai_memory_updated_at ON ai_memory;
+CREATE TRIGGER trg_ai_memory_updated_at BEFORE UPDATE ON ai_memory
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 -- ------------------------------------------------------------
 --  Lock the tables away from Supabase's auto REST API.
 --  (RLS on + no policies = anon/authenticated keys get nothing;
@@ -203,3 +256,6 @@ ALTER TABLE loan_payments           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investments             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investment_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE misc_transactions       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_sessions             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_messages             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_memory               ENABLE ROW LEVEL SECURITY;

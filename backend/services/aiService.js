@@ -53,31 +53,58 @@ const getClient = (apiKey) => {
   return clients.get(key);
 };
 
-// Shared request helper
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+// Shared request helper. Transient "high demand" (503/UNAVAILABLE) and network
+// blips are retried with a short backoff so users don't see a spurious error —
+// this is resilience only; the model, prompt, and parameters are unchanged.
 const geminiFetch = async (systemPrompt, userContent, { temperature, json, apiKey }) => {
   const ai = getClient(apiKey);
-  let response;
-  try {
-    response = await ai.models.generateContent({
-      model: config.gemini.model,
-      contents: userContent,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature,
-        ...(json ? { responseMimeType: 'application/json' } : {}),
-      },
-    });
-  } catch (err) {
-    const msg = String(err?.message || err);
-    if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg)) {
-      throw makeGeminiError('GEMINI_QUOTA', 'Your Gemini key quota is exhausted. Paste a new key or try again later.');
+  const MAX_ATTEMPTS = 3;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // Hard per-attempt timeout so a stalled/overloaded model can never hang
+    // the request forever. A timeout is treated as a transient error below.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await ai.models.generateContent({
+        model: config.gemini.model,
+        contents: userContent,
+        config: {
+          systemInstruction: systemPrompt,
+          temperature,
+          abortSignal: controller.signal,
+          ...(json ? { responseMimeType: 'application/json' } : {}),
+        },
+      });
+      clearTimeout(timer);
+      return response.text ?? '';
+    } catch (err) {
+      clearTimeout(timer);
+      const msg = String(err?.message || err);
+
+      // Quota / bad-key errors are terminal — surface immediately.
+      if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg)) {
+        throw makeGeminiError('GEMINI_QUOTA', 'Your Gemini key quota is exhausted. Paste a new key or try again later.');
+      }
+      if (/API key|API_KEY_INVALID|PERMISSION_DENIED|401|403/i.test(msg)) {
+        throw makeGeminiError('GEMINI_KEY_INVALID', 'Your Gemini API key is invalid. Please paste a valid key.');
+      }
+
+      // Transient: model overloaded, unavailable, a network hiccup, or our
+      // own per-attempt timeout (AbortError).
+      const transient = /503|UNAVAILABLE|high demand|overloaded|fetch failed|ECONNRESET|ETIMEDOUT|abort/i.test(msg);
+      if (transient && attempt < MAX_ATTEMPTS) {
+        await sleep(700 * attempt); // 700ms, 1400ms backoff
+        continue;
+      }
+      if (transient) {
+        throw makeGeminiError('GEMINI_UNAVAILABLE', 'The AI model is briefly busy. Please try again in a moment.');
+      }
+      throw new Error(`Gemini error: ${msg}`);
     }
-    if (/API key|API_KEY_INVALID|PERMISSION_DENIED|401|403/i.test(msg)) {
-      throw makeGeminiError('GEMINI_KEY_INVALID', 'Your Gemini API key is invalid. Please paste a valid key.');
-    }
-    throw new Error(`Gemini error: ${msg}`);
   }
-  return response.text ?? '';
 };
 
 // JSON-output call — used by intent classifier and recommendation engine.

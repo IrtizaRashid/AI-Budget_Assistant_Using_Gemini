@@ -370,7 +370,13 @@ CONVERSATIONAL:
 
 // ─── interpretMessage ─────────────────────────────────────────────────────────
 
-export const interpretMessage = async (message, categories = [], activeLoans = [], apiKey = null) => {
+export const interpretMessage = async (
+  message,
+  categories = [],
+  activeLoans = [],
+  apiKey = null,
+  conversationContext = ''
+) => {
   const systemPrompt = buildSystemPrompt(
     categories.length > 0
       ? categories
@@ -378,7 +384,14 @@ export const interpretMessage = async (message, categories = [], activeLoans = [
     activeLoans
   );
 
-  return geminiChat(systemPrompt, message, 0, apiKey);
+  // Conversation memory is prepended to the USER content only — the system
+  // prompt (the 7-stage pipeline) is never modified. When there is no
+  // context, the message is sent exactly as before.
+  const userContent = conversationContext
+    ? `${conversationContext}${message}`
+    : message;
+
+  return geminiChat(systemPrompt, userContent, 0, apiKey);
 };
 
 // ─── generateRecommendations ──────────────────────────────────────────────────

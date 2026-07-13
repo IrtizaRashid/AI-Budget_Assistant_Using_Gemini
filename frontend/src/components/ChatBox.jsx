@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { sendChatMessage } from '../services/chatService.js';
+import { useChat } from '../context/ChatContext.jsx';
 import { formatPKR } from '../utils/format.js';
 import ConfirmationCard from './ConfirmationCard.jsx';
 import DuplicateCard from './DuplicateCard.jsx';
@@ -411,14 +412,18 @@ export default function ChatBox({
   onReallocationSaved,
   budgetFull = false,
 }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      text: 'Hi! Try “I spent 500 on pizza” or “How much budget is left?”',
-    },
-  ]);
+  // Conversation state lives in ChatContext so it persists across page
+  // navigation and browser refresh (see context/ChatContext.jsx).
+  const {
+    messages,
+    setMessages,
+    loading,
+    setLoading,
+    sessionId,
+    setSessionId,
+    refreshSessions,
+  } = useChat();
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   // Speech Synthesis: read AI replies aloud when ON.
   const [speakResponses, setSpeakResponses] = useState(false);
 
@@ -428,7 +433,17 @@ export default function ChatBox({
     if (!window.speechSynthesis || !text) return;
     window.speechSynthesis.cancel(); // stop anything already speaking
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
+    const voices = window.speechSynthesis.getVoices?.() || [];
+    const preferredVoice = voices.find((voice) =>
+      /microsoft (jenny|aria)|google us english|samantha|english united states/i.test(voice.name)
+    ) || voices.find((voice) => /^en-US/i.test(voice.lang))
+      || voices.find((voice) => /^en-GB/i.test(voice.lang))
+      || voices.find((voice) => /^en/i.test(voice.lang));
+    utterance.lang = preferredVoice?.lang || 'en-US';
+    utterance.voice = preferredVoice || null;
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
   };
 
@@ -444,7 +459,14 @@ export default function ChatBox({
     setLoading(true);
 
     try {
-      const data = await sendChatMessage(userId, text);
+      const data = await sendChatMessage(userId, text, sessionId);
+
+      // Track the session the backend assigned (first message creates one) and
+      // refresh the history sidebar so the new/updated chat appears.
+      if (data.sessionId && data.sessionId !== sessionId) {
+        setSessionId(data.sessionId);
+      }
+      refreshSessions?.();
 
       // Total monthly budget exceeded — show the blocking modal. Nothing saved.
       if (data.status === 'monthly_budget_exceeded') {
@@ -582,14 +604,14 @@ export default function ChatBox({
             if (speakResponses) window.speechSynthesis?.cancel();
             setSpeakResponses((v) => !v);
           }}
-          title="Read AI replies aloud"
+          title="Read AI replies aloud in a clear English voice"
           className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition ${
             speakResponses
               ? 'bg-white text-fuchsia-700'
               : 'bg-white/20 text-white hover:bg-white/30'
           }`}
         >
-          🔊 {speakResponses ? 'ON' : 'OFF'}
+          🔊 {speakResponses ? 'Clear voice' : 'OFF'}
         </button>
       </div>
 

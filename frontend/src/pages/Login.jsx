@@ -11,6 +11,9 @@ export default function Login() {
   const { refreshUser } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const [otp, setOtp] = useState('');
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +24,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
 
     const email = form.email.trim().toLowerCase();
     const password = form.password;
@@ -50,6 +54,63 @@ export default function Login() {
     }
   };
 
+  const finishLogin = async () => {
+    const user = await refreshUser();
+    if (!user?.monthly_budget || Number(user.monthly_budget) === 0) {
+      navigate('/setup', { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
+  };
+
+  const handleSendLoginCode = async () => {
+    setError('');
+    setNotice('');
+    const email = form.email.trim().toLowerCase();
+    if (!email) return setError('Email address is required.');
+
+    try {
+      setLoading(true);
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) throw otpError;
+      setShowOtpInput(true);
+      setNotice('A login code has been sent to your email.');
+    } catch (err) {
+      setError(authErrorMessage(err, 'Could not send login code. Make sure this account already exists.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+
+    const email = form.email.trim().toLowerCase();
+    const token = otp.trim();
+    if (!email) return setError('Email address is required.');
+    if (!token) return setError('Login code is required.');
+
+    try {
+      setLoading(true);
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email',
+      });
+      if (verifyError) throw verifyError;
+      await finishLogin();
+    } catch (err) {
+      setError(authErrorMessage(err, 'Invalid or expired login code.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0712] px-4 py-10">
       <div className="pointer-events-none absolute -left-24 top-0 h-96 w-96 rounded-full bg-fuchsia-600/25 blur-[120px] animate-blob" />
@@ -65,11 +126,12 @@ export default function Login() {
           Sign In
         </h1>
         <p className="mt-1 text-center text-sm text-slate-400">
-          Enter your email and password.
+          Sign in with your password or an email code.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4" autoComplete="on">
+        <form onSubmit={showOtpInput ? handleOtpSubmit : handleSubmit} className="mt-6 space-y-4" autoComplete="on">
           {error && <Alert type="error">{error}</Alert>}
+          {notice && <Alert type="success">{notice}</Alert>}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-300">Email Address</label>
@@ -84,25 +146,59 @@ export default function Login() {
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-300">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              autoComplete="current-password"
-              placeholder="Your password"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
-            />
-          </div>
+          {showOtpInput ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-300">Login Code</label>
+              <input
+                type="text"
+                name="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputMode="numeric"
+                placeholder="12345678"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center text-lg font-bold tracking-widest text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <label className="block text-sm font-medium text-slate-300">Password</label>
+                <Link to="/forgot-password" className="text-xs font-semibold text-fuchsia-400 hover:text-fuchsia-300">
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+                placeholder="Your password"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-3 font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? 'Please wait...' : 'Sign In'}
+            {loading ? 'Please wait...' : showOtpInput ? 'Verify Code' : 'Sign In'}
+          </button>
+
+          <button
+            type="button"
+            onClick={showOtpInput ? () => {
+              setShowOtpInput(false);
+              setOtp('');
+              setError('');
+              setNotice('');
+            } : handleSendLoginCode}
+            disabled={loading}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {showOtpInput ? 'Use password instead' : 'Email me a login code'}
           </button>
 
           <p className="text-center text-sm text-slate-400">

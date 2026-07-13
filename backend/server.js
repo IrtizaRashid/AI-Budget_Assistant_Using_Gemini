@@ -25,6 +25,7 @@ import loanRoutes from './routes/loanRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import aiQueryRoutes from './routes/aiQueryRoutes.js';
+import chatSessionRoutes from './routes/chatSessionRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
@@ -66,6 +67,7 @@ app.use('/api/expenses', expenseRoutes);    // POST /api/expenses,   GET /api/ex
 app.use('/api/dashboard', dashboardRoutes); // GET  /api/dashboard/:userId
 app.use('/api/statistics', statisticsRoutes); // GET /api/statistics/:userId
 app.use('/api/ai/recommendations', recommendationRoutes); // GET /api/ai/recommendations/:userId
+app.use('/api/ai/sessions', chatSessionRoutes); // AI chat sessions & history
 app.use('/api', chatRoutes);                // POST /api/chat
 app.use('/api/income', incomeRoutes);       // GET/POST/DELETE /api/income
 app.use('/api/loans', loanRoutes);
