@@ -1,3 +1,5 @@
+import { config } from '../config/env.js';
+
 // Controllers hold the business logic for a route.
 // Keeping handlers here (instead of inline in routes) makes the
 // codebase modular and easy to test/extend.
@@ -5,6 +7,28 @@
 // GET /api/health
 export const getHealth = async (req, res) => {
   res.status(200).json({ status: 'Server Running' });
+};
+
+// GET /api/health/ai
+export const getAiHealth = async (req, res) => {
+  res.status(200).json({
+    ok: true,
+    providers: {
+      gemini: {
+        keys: config.gemini.apiKeys.length,
+        model: config.gemini.model,
+      },
+      groq: {
+        keys: config.groq.apiKeys.length,
+        model: config.groq.model,
+      },
+      openRouter: {
+        keys: config.openRouter.apiKeys.length,
+        model: config.openRouter.model,
+      },
+    },
+    fallbackOrder: ['userGeminiKey', 'gemini', 'groq', 'openRouter'],
+  });
 };
 
 // GET /api/health/supabase

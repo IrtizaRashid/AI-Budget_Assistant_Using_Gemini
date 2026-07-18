@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { loginApi } from '../services/api.js';
+import { loginApi, sendLoginCodeApi, verifyLoginCodeApi } from '../services/api.js';
 import { authErrorMessage } from '../utils/authErrors.js';
 import Alert from '../components/Alert.jsx';
+
+const OTP_LENGTH = 8;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -71,11 +73,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      });
-      if (otpError) throw otpError;
+      await sendLoginCodeApi({ email });
       setShowOtpInput(true);
       setNotice('A login code has been sent to your email.');
     } catch (err) {
@@ -94,15 +92,22 @@ export default function Login() {
     const token = otp.trim();
     if (!email) return setError('Email address is required.');
     if (!token) return setError('Login code is required.');
+    if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(token)) {
+      return setError(`Login code must be ${OTP_LENGTH} digits.`);
+    }
 
     try {
       setLoading(true);
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      const session = await verifyLoginCodeApi({
         email,
         token,
-        type: 'email',
       });
-      if (verifyError) throw verifyError;
+      if (session?.access_token && session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      }
       await finishLogin();
     } catch (err) {
       setError(authErrorMessage(err, 'Invalid or expired login code.'));
@@ -153,8 +158,9 @@ export default function Login() {
                 type="text"
                 name="otp"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
                 inputMode="numeric"
+                maxLength={OTP_LENGTH}
                 placeholder="12345678"
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center text-lg font-bold tracking-widest text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
               />

@@ -1,11 +1,9 @@
-// AI service — powered by Google Gemini via @google/genai.
+// AI service powered by Google Gemini via @google/genai.
 import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/env.js';
 
-// Attempt to close truncated JSON so partial responses don't hard-fail.
 const repairJSON = (raw) => {
   let s = raw.trim();
-  // Remove trailing comma before repair
   s = s.replace(/,\s*$/, '');
   const opens = (s.match(/\{/g) || []).length - (s.match(/\}/g) || []).length;
   const arrOpens = (s.match(/\[/g) || []).length - (s.match(/\]/g) || []).length;
@@ -35,9 +33,8 @@ const extractJSON = (raw) => {
   throw new Error('AI returned invalid JSON that could not be repaired.');
 };
 
-// Lazily construct the client so a missing key fails at call time with a
-// clear message instead of crashing the server on boot.
 const clients = new Map();
+
 const makeGeminiError = (code, message) => {
   const err = new Error(message);
   err.code = code;
@@ -45,69 +42,256 @@ const makeGeminiError = (code, message) => {
 };
 
 const getClient = (apiKey) => {
-  const key = apiKey || config.gemini.apiKey;
-  if (!key) {
-    throw makeGeminiError('GEMINI_KEY_MISSING', 'Please add your Gemini API key to use AI features.');
-  }
-  if (!clients.has(key)) clients.set(key, new GoogleGenAI({ apiKey: key }));
-  return clients.get(key);
+  if (!clients.has(apiKey)) clients.set(apiKey, new GoogleGenAI({ apiKey }));
+  return clients.get(apiKey);
 };
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// Shared request helper. Transient "high demand" (503/UNAVAILABLE) and network
-// blips are retried with a short backoff so users don't see a spurious error —
-// this is resilience only; the model, prompt, and parameters are unchanged.
-const geminiFetch = async (systemPrompt, userContent, { temperature, json, apiKey }) => {
-  const ai = getClient(apiKey);
-  const MAX_ATTEMPTS = 3;
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    // Hard per-attempt timeout so a stalled/overloaded model can never hang
-    // the request forever. A timeout is treated as a transient error below.
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    try {
-      const response = await ai.models.generateContent({
-        model: config.gemini.model,
-        contents: userContent,
-        config: {
-          systemInstruction: systemPrompt,
-          temperature,
-          abortSignal: controller.signal,
-          ...(json ? { responseMimeType: 'application/json' } : {}),
-        },
-      });
-      clearTimeout(timer);
-      return response.text ?? '';
-    } catch (err) {
-      clearTimeout(timer);
-      const msg = String(err?.message || err);
-
-      // Quota / bad-key errors are terminal — surface immediately.
-      if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg)) {
-        throw makeGeminiError('GEMINI_QUOTA', 'Your Gemini key quota is exhausted. Paste a new key or try again later.');
-      }
-      if (/API key|API_KEY_INVALID|PERMISSION_DENIED|401|403/i.test(msg)) {
-        throw makeGeminiError('GEMINI_KEY_INVALID', 'Your Gemini API key is invalid. Please paste a valid key.');
-      }
-
-      // Transient: model overloaded, unavailable, a network hiccup, or our
-      // own per-attempt timeout (AbortError).
-      const transient = /503|UNAVAILABLE|high demand|overloaded|fetch failed|ECONNRESET|ETIMEDOUT|abort/i.test(msg);
-      if (transient && attempt < MAX_ATTEMPTS) {
-        await sleep(700 * attempt); // 700ms, 1400ms backoff
-        continue;
-      }
-      if (transient) {
-        throw makeGeminiError('GEMINI_UNAVAILABLE', 'The AI model is briefly busy. Please try again in a moment.');
-      }
-      throw new Error(`Gemini error: ${msg}`);
-    }
-  }
+const getApiKeyCandidates = (apiKey) => {
+  const keys = [apiKey, ...config.gemini.apiKeys].filter(Boolean);
+  return [...new Set(keys)];
 };
 
-// JSON-output call — used by intent classifier and recommendation engine.
+const providerError = (provider, code, message) => {
+  const err = makeGeminiError(code, message);
+  err.provider = provider;
+  return err;
+};
+
+const classifyProviderError = (provider, msg) => {
+  if (/429|RESOURCE_EXHAUSTED|quota|rate limit/i.test(msg)) {
+    return providerError(provider, 'GEMINI_QUOTA', `${provider} key quota or rate limit was reached.`);
+  }
+  if (/API key|API_KEY_INVALID|PERMISSION_DENIED|Unauthorized|401|403|forbidden/i.test(msg)) {
+    return providerError(provider, 'GEMINI_KEY_INVALID', `${provider} API key was rejected.`);
+  }
+  if (/503|502|504|UNAVAILABLE|high demand|overloaded|fetch failed|ECONNRESET|ETIMEDOUT|abort/i.test(msg)) {
+    return providerError(provider, 'GEMINI_UNAVAILABLE', `${provider} is briefly unavailable.`);
+  }
+  return null;
+};
+
+const groqFetch = async (systemPrompt, userContent, { temperature, json }) => {
+  const MAX_ATTEMPTS = 3;
+  let lastKeyError = null;
+
+  for (const key of config.groq.apiKeys) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: config.groq.model,
+            messages: [
+              {
+                role: 'system',
+                content: json ? `${systemPrompt}\n\nReturn only valid JSON. Do not wrap it in markdown.` : systemPrompt,
+              },
+              { role: 'user', content: userContent },
+            ],
+            temperature,
+            stream: false,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        clearTimeout(timer);
+
+        if (!response.ok) {
+          const message = data.error?.message || data.message || data.error || `HTTP ${response.status}`;
+          const classified = classifyProviderError('Groq', `${response.status} ${message}`);
+          if (classified?.code === 'GEMINI_QUOTA' || classified?.code === 'GEMINI_KEY_INVALID') {
+            lastKeyError = classified;
+            break;
+          }
+          if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
+            await sleep(700 * attempt);
+            continue;
+          }
+          if (classified) {
+            lastKeyError = classified;
+            break;
+          }
+          throw new Error(`Groq error: ${message}`);
+        }
+
+        return data.choices?.[0]?.message?.content || '';
+      } catch (err) {
+        clearTimeout(timer);
+        const msg = String(err?.message || err);
+        const classified = classifyProviderError('Groq', msg);
+        if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
+          await sleep(700 * attempt);
+          continue;
+        }
+        if (classified) {
+          lastKeyError = classified;
+          break;
+        }
+        throw new Error(`Groq error: ${msg}`);
+      }
+    }
+  }
+
+  throw lastKeyError || providerError('Groq', 'GEMINI_UNAVAILABLE', 'Groq is unavailable.');
+};
+
+const openRouterFetch = async (systemPrompt, userContent, { temperature, json }) => {
+  const MAX_ATTEMPTS = 3;
+  let lastKeyError = null;
+
+  for (const key of config.openRouter.apiKeys) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            ...(config.openRouter.referer ? { 'HTTP-Referer': config.openRouter.referer } : {}),
+            ...(config.openRouter.title ? { 'X-OpenRouter-Title': config.openRouter.title } : {}),
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: config.openRouter.model,
+            messages: [
+              {
+                role: 'system',
+                content: json ? `${systemPrompt}\n\nReturn only valid JSON. Do not wrap it in markdown.` : systemPrompt,
+              },
+              { role: 'user', content: userContent },
+            ],
+            temperature,
+            stream: false,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        clearTimeout(timer);
+
+        if (!response.ok) {
+          const message = data.error?.message || data.message || data.error || `HTTP ${response.status}`;
+          const classified = classifyProviderError('OpenRouter', `${response.status} ${message}`);
+          if (classified?.code === 'GEMINI_QUOTA' || classified?.code === 'GEMINI_KEY_INVALID') {
+            lastKeyError = classified;
+            break;
+          }
+          if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
+            await sleep(700 * attempt);
+            continue;
+          }
+          if (classified) {
+            lastKeyError = classified;
+            break;
+          }
+          throw new Error(`OpenRouter error: ${message}`);
+        }
+
+        return data.choices?.[0]?.message?.content || '';
+      } catch (err) {
+        clearTimeout(timer);
+        const msg = String(err?.message || err);
+        const classified = classifyProviderError('OpenRouter', msg);
+        if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
+          await sleep(700 * attempt);
+          continue;
+        }
+        if (classified) {
+          lastKeyError = classified;
+          break;
+        }
+        throw new Error(`OpenRouter error: ${msg}`);
+      }
+    }
+  }
+
+  throw lastKeyError || providerError('OpenRouter', 'GEMINI_UNAVAILABLE', 'OpenRouter is unavailable.');
+};
+
+const geminiFetch = async (systemPrompt, userContent, { temperature, json, apiKey }) => {
+  const apiKeys = getApiKeyCandidates(apiKey);
+  if (apiKeys.length === 0 && config.groq.apiKeys.length === 0 && config.openRouter.apiKeys.length === 0) {
+    throw makeGeminiError('GEMINI_KEY_MISSING', 'No AI API keys are configured on the server.');
+  }
+
+  const MAX_ATTEMPTS = 3;
+  let lastKeyError = null;
+
+  for (const key of apiKeys) {
+    const ai = getClient(key);
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      try {
+        const response = await ai.models.generateContent({
+          model: config.gemini.model,
+          contents: userContent,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature,
+            abortSignal: controller.signal,
+            ...(json ? { responseMimeType: 'application/json' } : {}),
+          },
+        });
+        clearTimeout(timer);
+        return response.text ?? '';
+      } catch (err) {
+        clearTimeout(timer);
+        const msg = String(err?.message || err);
+        const classified = classifyProviderError('Gemini', msg);
+
+        if (classified?.code === 'GEMINI_QUOTA') {
+          lastKeyError = classified;
+          break;
+        }
+        if (classified?.code === 'GEMINI_KEY_INVALID') {
+          lastKeyError = classified;
+          break;
+        }
+
+        if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
+          await sleep(700 * attempt);
+          continue;
+        }
+        if (classified) {
+          lastKeyError = classified;
+          break;
+        }
+        throw new Error(`Gemini error: ${msg}`);
+      }
+    }
+  }
+
+  if (config.groq.apiKeys.length > 0) {
+    try {
+      return await groqFetch(systemPrompt, userContent, { temperature, json });
+    } catch (err) {
+      lastKeyError = err;
+    }
+  }
+
+  if (config.openRouter.apiKeys.length > 0) {
+    try {
+      return await openRouterFetch(systemPrompt, userContent, { temperature, json });
+    } catch (err) {
+      lastKeyError = err;
+    }
+  }
+
+  throw lastKeyError || makeGeminiError('GEMINI_UNAVAILABLE', 'The AI service is unavailable.');
+};
+
 export const geminiChat = async (systemPrompt, userContent, temperature = 0, apiKey = null) => {
   const raw = await geminiFetch(systemPrompt, userContent, { temperature, json: true, apiKey });
   const parsed = extractJSON(raw);
@@ -115,8 +299,6 @@ export const geminiChat = async (systemPrompt, userContent, temperature = 0, api
   return parsed;
 };
 
-// Plain-text call — used by the Universal Query Engine for natural-language answers.
-// Returns a raw string, not JSON.
 export const geminiText = async (systemPrompt, userContent, temperature = 0.3, apiKey = null) => {
   const raw = await geminiFetch(systemPrompt, userContent, { temperature, json: false, apiKey });
   return raw.trim();

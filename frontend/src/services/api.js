@@ -22,7 +22,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const code = error.response?.data?.code;
-    if (['GEMINI_KEY_MISSING', 'GEMINI_KEY_INVALID', 'GEMINI_QUOTA'].includes(code)) {
+    if (code === 'GEMINI_KEY_MISSING') {
       window.dispatchEvent(new CustomEvent('gemini-key-required', {
         detail: {
           code,
@@ -46,6 +46,16 @@ export const loginApi = async (payload) => {
   return data;
 };
 
+export const sendLoginCodeApi = async (payload) => {
+  const { data } = await api.post('/auth/send-login-code', payload);
+  return data;
+};
+
+export const verifyLoginCodeApi = async (payload) => {
+  const { data } = await api.post('/auth/verify-login-code', payload);
+  return data;
+};
+
 export const verifySignupApi = async (payload) => {
   const { data } = await api.post('/auth/verify-signup', payload);
   return data;
@@ -53,6 +63,16 @@ export const verifySignupApi = async (payload) => {
 
 export const resendSignupApi = async (payload) => {
   const { data } = await api.post('/auth/resend-signup', payload);
+  return data;
+};
+
+export const forgotPasswordApi = async (payload) => {
+  const { data } = await api.post('/auth/forgot-password', payload);
+  return data;
+};
+
+export const verifyPasswordResetApi = async (payload) => {
+  const { data } = await api.post('/auth/verify-password-reset', payload);
   return data;
 };
 
