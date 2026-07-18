@@ -38,209 +38,172 @@ export const recordMiscTransaction = async ({
   return res.insertId;
 };
 
-const emptyOnMissingOptionalTable = (promise) => promise.then(([rows]) => rows).catch(() => []);
-
 export const getTransactionHistory = async (userId, options = {}) => {
   const id = Number(userId);
   const limit = Math.min(Math.max(Number(options.limit) || 300, 1), 1000);
 
-  const expensesQuery = pool.execute(
-    `SELECT
-       'expense' AS type,
-       e.id,
-       e.amount,
-       e.category,
-       e.description,
-       NULL AS person,
-       NULL AS investment_name,
-       NULL AS loan_id,
-       NULL AS investment_id,
-       e.expense_date AS date,
-       NULL AS time,
-       e.expense_date AS created_at
-     FROM expenses e
-     WHERE e.user_id = ?
-     ORDER BY e.expense_date DESC, e.id DESC
-     LIMIT ?`,
-    [id, limit]
-  ).then(([rows]) => rows);
+  const [rows] = await pool.execute(
+    `SELECT *
+       FROM (
+        SELECT
+          'expense' AS type,
+          e.id,
+          e.amount,
+          e.category,
+          e.description,
+          NULL AS person,
+          NULL AS investment_name,
+          NULL::text AS loan_id,
+          NULL::text AS investment_id,
+          e.expense_date AS date,
+          NULL AS time,
+          e.expense_date AS created_at
+        FROM expenses e
+        WHERE e.user_id = ?
 
-  const incomeQuery = pool.execute(
-    `SELECT
-       'income' AS type,
-       id,
-       amount,
-       source AS category,
-       description,
-       NULL AS person,
-       NULL AS investment_name,
-       NULL AS loan_id,
-       NULL AS investment_id,
-       received_date AS date,
-       received_time AS time,
-       created_at
-     FROM income
-     WHERE user_id = ?
-     ORDER BY received_date DESC, received_time DESC, created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  ).then(([rows]) => rows);
+        UNION ALL
 
-  const loansGivenQuery = pool.execute(
-    `SELECT
-       'loan_given' AS type,
-       id,
-       original_amount AS amount,
-       'Loan Given' AS category,
-       description,
-       person_name AS person,
-       NULL AS investment_name,
-       id AS loan_id,
-       NULL AS investment_id,
-       loan_date AS date,
-       loan_time AS time,
-       created_at
-     FROM loans
-     WHERE user_id = ? AND type = 'given'
-     ORDER BY loan_date DESC, created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  ).then(([rows]) => rows);
+        SELECT
+          'income' AS type,
+          i.id,
+          i.amount,
+          i.source AS category,
+          i.description,
+          NULL AS person,
+          NULL AS investment_name,
+          NULL::text AS loan_id,
+          NULL::text AS investment_id,
+          i.received_date AS date,
+          i.received_time AS time,
+          i.created_at
+        FROM income i
+        WHERE i.user_id = ?
 
-  const loansTakenQuery = pool.execute(
-    `SELECT
-       'loan_taken' AS type,
-       id,
-       original_amount AS amount,
-       'Loan Taken' AS category,
-       description,
-       person_name AS person,
-       NULL AS investment_name,
-       id AS loan_id,
-       NULL AS investment_id,
-       loan_date AS date,
-       loan_time AS time,
-       created_at
-     FROM loans
-     WHERE user_id = ? AND type = 'taken'
-     ORDER BY loan_date DESC, created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  ).then(([rows]) => rows);
+        UNION ALL
 
-  const repaymentsReceivedQuery = emptyOnMissingOptionalTable(pool.execute(
-    `SELECT
-       'repayment_received' AS type,
-       lp.id,
-       lp.amount,
-       'Repayment Received' AS category,
-       COALESCE(lp.notes, CONCAT('Repayment from ', l.person_name)) AS description,
-       l.person_name AS person,
-       NULL AS investment_name,
-       lp.loan_id,
-       NULL AS investment_id,
-       lp.payment_date AS date,
-       lp.payment_time AS time,
-       lp.created_at
-     FROM loan_payments lp
-     JOIN loans l ON lp.loan_id = l.id
-     WHERE l.user_id = ? AND l.type = 'given'
-     ORDER BY lp.payment_date DESC, lp.created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  ));
+        SELECT
+          'loan_given' AS type,
+          l.id,
+          l.original_amount AS amount,
+          'Loan Given' AS category,
+          l.description,
+          l.person_name AS person,
+          NULL AS investment_name,
+          l.id::text AS loan_id,
+          NULL::text AS investment_id,
+          l.loan_date AS date,
+          l.loan_time AS time,
+          l.created_at
+        FROM loans l
+        WHERE l.user_id = ? AND l.type = 'given'
 
-  const repaymentsMadeQuery = emptyOnMissingOptionalTable(pool.execute(
-    `SELECT
-       'repayment_made' AS type,
-       lp.id,
-       lp.amount,
-       'Repayment Made' AS category,
-       COALESCE(lp.notes, CONCAT('Repayment to ', l.person_name)) AS description,
-       l.person_name AS person,
-       NULL AS investment_name,
-       lp.loan_id,
-       NULL AS investment_id,
-       lp.payment_date AS date,
-       lp.payment_time AS time,
-       lp.created_at
-     FROM loan_payments lp
-     JOIN loans l ON lp.loan_id = l.id
-     WHERE l.user_id = ? AND l.type = 'taken'
-     ORDER BY lp.payment_date DESC, lp.created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  ));
+        UNION ALL
 
-  const investmentQuery = emptyOnMissingOptionalTable(pool.execute(
-    `SELECT
-       it.type AS raw_type,
-       it.id,
-       it.amount,
-       i.type AS category,
-       i.name AS description,
-       NULL AS person,
-       i.name AS investment_name,
-       NULL AS loan_id,
-       it.investment_id,
-       it.transaction_date AS date,
-       it.transaction_time AS time,
-       it.created_at
-     FROM investment_transactions it
-     JOIN investments i ON it.investment_id = i.id
-     WHERE it.user_id = ?
-     ORDER BY COALESCE(it.transaction_date, it.created_at) DESC, it.created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  )).then((rows) => {
-    const typeMap = {
-      purchase: 'investment_buy',
-      sale: 'investment_sell',
-      dividend: 'investment_dividend',
-      interest: 'investment_interest',
-      capital_gain: 'investment_gain',
-      capital_loss: 'investment_loss',
-    };
-    return rows.map((row) => ({
-      ...row,
-      type: typeMap[row.raw_type] || row.raw_type,
-      raw_type: undefined,
-    }));
-  });
+        SELECT
+          'loan_taken' AS type,
+          l.id,
+          l.original_amount AS amount,
+          'Loan Taken' AS category,
+          l.description,
+          l.person_name AS person,
+          NULL AS investment_name,
+          l.id::text AS loan_id,
+          NULL::text AS investment_id,
+          l.loan_date AS date,
+          l.loan_time AS time,
+          l.created_at
+        FROM loans l
+        WHERE l.user_id = ? AND l.type = 'taken'
 
-  const miscQuery = emptyOnMissingOptionalTable(pool.execute(
-    `SELECT
-       type,
-       id,
-       amount,
-       category,
-       description,
-       person,
-       investment_name,
-       loan_id,
-       investment_id,
-       tx_date AS date,
-       tx_time AS time,
-       created_at
-     FROM misc_transactions
-     WHERE user_id = ?
-     ORDER BY tx_date DESC, created_at DESC
-     LIMIT ?`,
-    [id, limit]
-  ));
+        UNION ALL
 
-  const groups = await Promise.all([
-    expensesQuery,
-    incomeQuery,
-    loansGivenQuery,
-    loansTakenQuery,
-    repaymentsReceivedQuery,
-    repaymentsMadeQuery,
-    investmentQuery,
-    miscQuery,
-  ]);
+        SELECT
+          'repayment_received' AS type,
+          lp.id,
+          lp.amount,
+          'Repayment Received' AS category,
+          COALESCE(lp.notes, CONCAT('Repayment from ', l.person_name)) AS description,
+          l.person_name AS person,
+          NULL AS investment_name,
+          lp.loan_id::text AS loan_id,
+          NULL::text AS investment_id,
+          lp.payment_date AS date,
+          lp.payment_time AS time,
+          lp.created_at
+        FROM loan_payments lp
+        JOIN loans l ON lp.loan_id = l.id
+        WHERE l.user_id = ? AND l.type = 'given'
 
-  const all = groups.flat().map((row) => ({
+        UNION ALL
+
+        SELECT
+          'repayment_made' AS type,
+          lp.id,
+          lp.amount,
+          'Repayment Made' AS category,
+          COALESCE(lp.notes, CONCAT('Repayment to ', l.person_name)) AS description,
+          l.person_name AS person,
+          NULL AS investment_name,
+          lp.loan_id::text AS loan_id,
+          NULL::text AS investment_id,
+          lp.payment_date AS date,
+          lp.payment_time AS time,
+          lp.created_at
+        FROM loan_payments lp
+        JOIN loans l ON lp.loan_id = l.id
+        WHERE l.user_id = ? AND l.type = 'taken'
+
+        UNION ALL
+
+        SELECT
+          CASE it.type
+            WHEN 'purchase' THEN 'investment_buy'
+            WHEN 'sale' THEN 'investment_sell'
+            WHEN 'dividend' THEN 'investment_dividend'
+            WHEN 'interest' THEN 'investment_interest'
+            WHEN 'capital_gain' THEN 'investment_gain'
+            WHEN 'capital_loss' THEN 'investment_loss'
+            ELSE it.type
+          END AS type,
+          it.id,
+          it.amount,
+          inv.type AS category,
+          inv.name AS description,
+          NULL AS person,
+          inv.name AS investment_name,
+          NULL::text AS loan_id,
+          it.investment_id::text AS investment_id,
+          it.transaction_date AS date,
+          it.transaction_time AS time,
+          it.created_at
+        FROM investment_transactions it
+        JOIN investments inv ON it.investment_id = inv.id
+        WHERE it.user_id = ?
+
+        UNION ALL
+
+        SELECT
+          m.type,
+          m.id,
+          m.amount,
+          m.category,
+          m.description,
+          m.person,
+          m.investment_name,
+          m.loan_id::text AS loan_id,
+          m.investment_id::text AS investment_id,
+          m.tx_date AS date,
+          m.tx_time AS time,
+          m.created_at
+        FROM misc_transactions m
+        WHERE m.user_id = ?
+      ) tx
+      ORDER BY tx.date DESC NULLS LAST, tx.created_at DESC NULLS LAST
+      LIMIT ?`,
+    [id, id, id, id, id, id, id, id, limit]
+  );
+
+  return rows.map((row) => ({
     id: row.id,
     type: row.type,
     amount: Number(row.amount),
@@ -254,13 +217,4 @@ export const getTransactionHistory = async (userId, options = {}) => {
     time: row.time || null,
     created_at: row.created_at,
   }));
-
-  all.sort((a, b) => {
-    const da = a.date ? new Date(a.date) : new Date(a.created_at);
-    const db = b.date ? new Date(b.date) : new Date(b.created_at);
-    if (db - da !== 0) return db - da;
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
-
-  return all.slice(0, limit);
 };

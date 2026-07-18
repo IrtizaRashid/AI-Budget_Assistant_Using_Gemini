@@ -55,6 +55,7 @@ SELECT public.create_index_if_columns_exist('idx_income_user_received', 'income'
 -- Loans and loan payments.
 SELECT public.create_index_if_columns_exist('idx_loans_user_date', 'loans', 'user_id, loan_date DESC, created_at DESC', ARRAY['user_id', 'loan_date', 'created_at']);
 SELECT public.create_index_if_columns_exist('idx_loans_user_type_status', 'loans', 'user_id, type, status', ARRAY['user_id', 'type', 'status']);
+SELECT public.create_index_if_columns_exist('idx_loans_user_type_date', 'loans', 'user_id, type, loan_date DESC, created_at DESC', ARRAY['user_id', 'type', 'loan_date', 'created_at']);
 SELECT public.create_index_if_columns_exist('idx_loan_payments_loan_date', 'loan_payments', 'loan_id, payment_date DESC, created_at DESC', ARRAY['loan_id', 'payment_date', 'created_at']);
 
 -- Investment portfolio and investment transaction pages.

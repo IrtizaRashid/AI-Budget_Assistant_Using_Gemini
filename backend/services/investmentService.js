@@ -284,45 +284,38 @@ export const getInvestmentTransactions = async (userId) => {
 };
 
 export const getInvestmentSummary = async (userId) => {
-
-  const [[activeRow]] = await pool.execute(
-    `SELECT
-       COUNT(*) AS count,
-       COALESCE(SUM(invested_amount), 0) AS total_invested,
-       COALESCE(SUM(current_value),   0) AS total_current_value
-     FROM investments WHERE user_id = ? AND status = 'active'`,
-    [userId]
+  const [[row]] = await pool.execute(
+    `WITH
+      active AS (
+        SELECT
+          COUNT(*) AS count,
+          COALESCE(SUM(invested_amount), 0) AS total_invested,
+          COALESCE(SUM(current_value), 0) AS total_current_value
+          FROM investments
+         WHERE user_id = ? AND status = 'active'
+      ),
+      tx AS (
+        SELECT
+          COALESCE(SUM(CASE WHEN type = 'sale' THEN profit_loss ELSE 0 END), 0) AS realized,
+          COALESCE(SUM(CASE WHEN type IN ('dividend','interest') THEN amount ELSE 0 END), 0) AS dividends
+          FROM investment_transactions
+         WHERE user_id = ?
+      )
+      SELECT active.*, tx.realized, tx.dividends
+        FROM active
+        CROSS JOIN tx`,
+    [userId, userId]
   );
 
-  const [[soldRow]] = await pool.execute(
-    `SELECT COALESCE(SUM(current_value), 0) AS total_sold_value,
-            COALESCE(SUM(invested_amount), 0) AS total_sold_cost
-     FROM investments WHERE user_id = ? AND status = 'sold'`,
-    [userId]
-  );
-
-  // Realized P&L from sale transactions
-  let realizedPL = 0;
-  let dividends = 0;
-  try {
-    const [[plRow]] = await pool.execute(
-      `SELECT
-         COALESCE(SUM(CASE WHEN type = 'sale' THEN profit_loss ELSE 0 END), 0) AS realized,
-         COALESCE(SUM(CASE WHEN type IN ('dividend','interest') THEN amount ELSE 0 END), 0) AS dividends
-       FROM investment_transactions WHERE user_id = ?`,
-      [userId]
-    );
-    realizedPL = Number(plRow.realized);
-    dividends = Number(plRow.dividends);
-  } catch { /* ignore */ }
-
-  const totalInvested = Number(activeRow.total_invested);
-  const totalCurrentValue = Number(activeRow.total_current_value);
+  const totalInvested = Number(row.total_invested);
+  const totalCurrentValue = Number(row.total_current_value);
   const unrealizedGL = totalCurrentValue - totalInvested;
   const totalReturn = totalInvested > 0 ? Number(((unrealizedGL / totalInvested) * 100).toFixed(2)) : 0;
+  const realizedPL = Number(row.realized);
+  const dividends = Number(row.dividends);
 
   return {
-    activeCount: Number(activeRow.count),
+    activeCount: Number(row.count),
     totalInvested,
     totalCurrentValue,
     unrealizedGL,
@@ -332,4 +325,3 @@ export const getInvestmentSummary = async (userId) => {
     totalPL: unrealizedGL + realizedPL,
   };
 };
-
