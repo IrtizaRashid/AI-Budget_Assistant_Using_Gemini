@@ -16,11 +16,19 @@ const parseKeys = (...values) =>
     .map((key) => key.trim())
     .filter(Boolean);
 
+const parseInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 5001,
   db: {
     url: process.env.DATABASE_URL,
+    poolMax: parseInteger(process.env.DB_POOL_MAX, process.env.NODE_ENV === 'production' ? 5 : 10),
+    idleTimeoutMs: parseInteger(process.env.DB_IDLE_TIMEOUT_MS, 30000),
+    connectionTimeoutMs: parseInteger(process.env.DB_CONNECTION_TIMEOUT_MS, 10000),
   },
   supabase: {
     url: process.env.SUPABASE_URL,

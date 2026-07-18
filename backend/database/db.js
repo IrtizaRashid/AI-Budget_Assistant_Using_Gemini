@@ -22,7 +22,9 @@ const pool = new Pool({
   ssl: config.db.url && !/localhost|127\.0\.0\.1/.test(config.db.url)
     ? { rejectUnauthorized: false }
     : false,
-  max: 10,
+  max: config.db.poolMax,
+  idleTimeoutMillis: config.db.idleTimeoutMs,
+  connectionTimeoutMillis: config.db.connectionTimeoutMs,
 });
 
 // Convert mysql-style `?` placeholders to Postgres `$1..$n`.

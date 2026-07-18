@@ -34,16 +34,148 @@ api.interceptors.response.use(
   }
 );
 
-// ---- Auth endpoints ----
+const READ_CACHE_TTL_MS = 20000;
+const WARM_CACHE_TTL_MS = 60000;
+const CACHE_STORAGE_PREFIX = 'budget_ai_api_cache:';
+const readCache = new Map();
+const inflightReads = new Map();
+let lastPrefetchedUserId = null;
 
-export const registerApi = async (payload) => {
-  const { data } = await api.post('/auth/register', payload);
+const makeReadCacheKey = (url, config = {}) => JSON.stringify({
+  url,
+  params: config.params || null,
+});
+
+const getStorageKey = (key) => `${CACHE_STORAGE_PREFIX}${key}`;
+
+const readStoredCache = (key) => {
+  try {
+    const raw = sessionStorage.getItem(getStorageKey(key));
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (!cached?.expiresAt || cached.expiresAt <= Date.now()) {
+      sessionStorage.removeItem(getStorageKey(key));
+      return null;
+    }
+    return cached;
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredCache = (key, value) => {
+  try {
+    sessionStorage.setItem(getStorageKey(key), JSON.stringify(value));
+  } catch {
+    // Storage can be unavailable in private windows; memory cache still works.
+  }
+};
+
+const clearStoredCache = () => {
+  try {
+    Object.keys(sessionStorage)
+      .filter((key) => key.startsWith(CACHE_STORAGE_PREFIX))
+      .forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+};
+
+export const clearApiCache = () => {
+  readCache.clear();
+  inflightReads.clear();
+  clearStoredCache();
+  lastPrefetchedUserId = null;
+};
+
+const cachedGet = async (url, config = {}, ttl = READ_CACHE_TTL_MS) => {
+  const key = makeReadCacheKey(url, config);
+  const cached = readCache.get(key);
+  const now = Date.now();
+
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  const stored = readStoredCache(key);
+  if (stored) {
+    readCache.set(key, stored);
+    return stored.data;
+  }
+
+  if (inflightReads.has(key)) {
+    return inflightReads.get(key);
+  }
+
+  const request = api.get(url, config)
+    .then(({ data }) => {
+      const cacheEntry = {
+        data,
+        expiresAt: Date.now() + ttl,
+      };
+      readCache.set(key, cacheEntry);
+      writeStoredCache(key, cacheEntry);
+      return data;
+    })
+    .finally(() => {
+      inflightReads.delete(key);
+    });
+
+  inflightReads.set(key, request);
+  return request;
+};
+
+const mutate = async (request) => {
+  const { data } = await request;
+  clearApiCache();
   return data;
 };
 
+supabase.auth.onAuthStateChange((event) => {
+  if (['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED'].includes(event)) {
+    clearApiCache();
+  }
+});
+
+const onIdle = (callback) => {
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(callback, { timeout: 2500 });
+  } else {
+    window.setTimeout(callback, 150);
+  }
+};
+
+export const prefetchUserWorkspace = (userId) => {
+  if (!userId || lastPrefetchedUserId === userId) return;
+  lastPrefetchedUserId = userId;
+
+  onIdle(() => {
+    const requests = [
+      cachedGet(`/dashboard/${userId}`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/categories/${userId}`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/expenses/${userId}`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/statistics/${userId}`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/income/${userId}`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/loans/${userId}`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/loans/${userId}/summary`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/investments/${userId}/portfolio`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/investments/${userId}/summary`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/investments/${userId}/transactions`, {}, WARM_CACHE_TTL_MS),
+      cachedGet(`/transactions/${userId}`, { params: { limit: 300 } }, WARM_CACHE_TTL_MS),
+    ];
+
+    Promise.allSettled(requests).catch(() => {});
+  });
+};
+
+// ---- Auth endpoints ----
+
+export const registerApi = async (payload) => {
+  return mutate(api.post('/auth/register', payload));
+};
+
 export const loginApi = async (payload) => {
-  const { data } = await api.post('/auth/login', payload);
-  return data;
+  return mutate(api.post('/auth/login', payload));
 };
 
 export const sendLoginCodeApi = async (payload) => {
@@ -52,13 +184,11 @@ export const sendLoginCodeApi = async (payload) => {
 };
 
 export const verifyLoginCodeApi = async (payload) => {
-  const { data } = await api.post('/auth/verify-login-code', payload);
-  return data;
+  return mutate(api.post('/auth/verify-login-code', payload));
 };
 
 export const verifySignupApi = async (payload) => {
-  const { data } = await api.post('/auth/verify-signup', payload);
-  return data;
+  return mutate(api.post('/auth/verify-signup', payload));
 };
 
 export const resendSignupApi = async (payload) => {
@@ -72,187 +202,160 @@ export const forgotPasswordApi = async (payload) => {
 };
 
 export const verifyPasswordResetApi = async (payload) => {
-  const { data } = await api.post('/auth/verify-password-reset', payload);
-  return data;
+  return mutate(api.post('/auth/verify-password-reset', payload));
 };
 
 // GET /api/auth/me
 export const getMe = async () => {
-  const { data } = await api.get('/auth/me');
-  return data;
+  return cachedGet('/auth/me');
 };
 
 // ---- Budget setup ----
 
 // POST /api/setup-budget
 export const setupBudget = async (payload) => {
-  const { data } = await api.post('/setup-budget', payload);
-  return data;
+  return mutate(api.post('/setup-budget', payload));
 };
 
 // ---- Dashboard ----
 
 // GET /api/dashboard/:userId
 export const getDashboard = async (userId) => {
-  const { data } = await api.get(`/dashboard/${userId}`);
-  return data;
+  return cachedGet(`/dashboard/${userId}`);
 };
 
 // ---- Categories ----
 
 // GET /api/categories/:userId
 export const getCategories = async (userId) => {
-  const { data } = await api.get(`/categories/${userId}`);
-  return data;
+  return cachedGet(`/categories/${userId}`);
 };
 
 // ---- Expenses ----
 
 // GET /api/expenses/:userId
 export const getExpenses = async (userId) => {
-  const { data } = await api.get(`/expenses/${userId}`);
-  return data;
+  return cachedGet(`/expenses/${userId}`);
 };
 
 // DELETE /api/expenses/:expenseId
 export const deleteExpense = async (expenseId) => {
-  const { data } = await api.delete(`/expenses/${expenseId}`);
-  return data;
+  return mutate(api.delete(`/expenses/${expenseId}`));
 };
 
 // ---- Statistics ----
 
 // GET /api/statistics/:userId
 export const getStatistics = async (userId) => {
-  const { data } = await api.get(`/statistics/${userId}`);
-  return data;
+  return cachedGet(`/statistics/${userId}`);
 };
 
 // ---- AI Recommendations ----
 
 // GET /api/ai/recommendations/:userId
 export const getRecommendations = async (userId) => {
-  const { data } = await api.get(`/ai/recommendations/${userId}`);
-  return data;
+  return cachedGet(`/ai/recommendations/${userId}`, {}, 60000);
 };
 
 // ---- Budget allocation update ----
 
 // PUT /api/budget-allocation
 export const updateBudgetAllocation = async (payload) => {
-  const { data } = await api.put('/budget-allocation', payload);
-  return data;
+  return mutate(api.put('/budget-allocation', payload));
 };
 
 // ---- Income ----
 
 // GET /api/income/:userId
 export const getIncome = async (userId) => {
-  const { data } = await api.get(`/income/${userId}`);
-  return data;
+  return cachedGet(`/income/${userId}`);
 };
 
 // POST /api/income
 export const createIncome = async (payload) => {
-  const { data } = await api.post('/income', payload);
-  return data;
+  return mutate(api.post('/income', payload));
 };
 
 // DELETE /api/income/:incomeId
 export const deleteIncomeRecord = async (incomeId) => {
-  const { data } = await api.delete(`/income/${incomeId}`);
-  return data;
+  return mutate(api.delete(`/income/${incomeId}`));
 };
 
 // ---- Loans ----
 
 // GET /api/loans/:userId
 export const getLoans = async (userId) => {
-  const { data } = await api.get(`/loans/${userId}`);
-  return data;
+  return cachedGet(`/loans/${userId}`);
 };
 
 // PUT /api/loans/:loanId/paid
 export const markLoanPaid = async (loanId) => {
-  const { data } = await api.put(`/loans/${loanId}/paid`);
-  return data;
+  return mutate(api.put(`/loans/${loanId}/paid`));
 };
 
 // PUT /api/loans/:loanId
 export const updateLoan = async (loanId, payload) => {
-  const { data } = await api.put(`/loans/${loanId}`, payload);
-  return data;
+  return mutate(api.put(`/loans/${loanId}`, payload));
 };
 
 // DELETE /api/loans/:loanId
 export const deleteLoan = async (loanId) => {
-  const { data } = await api.delete(`/loans/${loanId}`);
-  return data;
+  return mutate(api.delete(`/loans/${loanId}`));
 };
 
 // GET /api/loans/:userId/summary
 export const getLoanSummary = async (userId) => {
-  const { data } = await api.get(`/loans/${userId}/summary`);
-  return data;
+  return cachedGet(`/loans/${userId}/summary`);
 };
 
 // GET /api/transactions/:userId
 export const getTransactions = async (userId) => {
-  const { data } = await api.get(`/transactions/${userId}`);
-  return data;
+  return cachedGet(`/transactions/${userId}`, { params: { limit: 300 } });
 };
 
 // GET /api/loans/:loanId/payments
 export const getLoanPayments = async (loanId) => {
-  const { data } = await api.get(`/loans/${loanId}/payments`);
-  return data;
+  return cachedGet(`/loans/${loanId}/payments`);
 };
 
 // ---- Investments ----
 
 // GET /api/investments/:userId/portfolio
 export const getPortfolio = async (userId) => {
-  const { data } = await api.get(`/investments/${userId}/portfolio`);
-  return data;
+  return cachedGet(`/investments/${userId}/portfolio`);
 };
 
 // GET /api/investments/:userId/summary
 export const getInvestmentSummary = async (userId) => {
-  const { data } = await api.get(`/investments/${userId}/summary`);
-  return data;
+  return cachedGet(`/investments/${userId}/summary`);
 };
 
 // GET /api/investments/:userId/transactions
 export const getInvestmentTransactions = async (userId) => {
-  const { data } = await api.get(`/investments/${userId}/transactions`);
-  return data;
+  return cachedGet(`/investments/${userId}/transactions`);
 };
 
 // ---- Universal AI Query ----
 
 // POST /api/ai/query
 export const universalQuery = async (payload) => {
-  const { data } = await api.post('/ai/query', payload);
-  return data;
+  return mutate(api.post('/ai/query', payload));
 };
 
 // POST /api/loans/split
 export const createSplitExpense = async (payload) => {
-  const { data } = await api.post('/loans/split', payload);
-  return data;
+  return mutate(api.post('/loans/split', payload));
 };
 
 // ---- Users ----
 
 // POST /api/users/:userId/reset-month
 export const resetMonth = async (userId) => {
-  const { data } = await api.post(`/users/${userId}/reset-month`);
-  return data;
+  return mutate(api.post(`/users/${userId}/reset-month`));
 };
 
 export const saveGeminiKey = async (apiKey) => {
-  const { data } = await api.put('/users/me/gemini-key', { apiKey });
-  return data;
+  return mutate(api.put('/users/me/gemini-key', { apiKey }));
 };
 
 export default api;

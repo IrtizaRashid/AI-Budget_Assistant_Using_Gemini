@@ -20,6 +20,7 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import UploadPage from './pages/UploadPage.jsx';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
 import { useEffect, useState } from 'react';
+import { prefetchUserWorkspace } from './services/api.js';
 
 // A user who hasn't finished budget setup has monthly_budget = 0.
 const needsBudgetSetup = (user) =>
@@ -56,6 +57,12 @@ export default function App() {
       window.removeEventListener('open-gemini-key-modal', handler);
     };
   }, []);
+
+  useEffect(() => {
+    if (user?.id && !mustSetup) {
+      prefetchUserWorkspace(user.id);
+    }
+  }, [user?.id, mustSetup]);
 
   if (loading) {
     return (

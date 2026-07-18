@@ -3,7 +3,9 @@ import { getTransactionHistory, recordMiscTransaction } from '../services/transa
 
 // GET /api/transactions/:userId
 export const getTransactions = asyncHandler(async (req, res) => {
-  const transactions = await getTransactionHistory(req.params.userId);
+  const transactions = await getTransactionHistory(req.params.userId, {
+    limit: req.query.limit,
+  });
   res.status(200).json(transactions);
 });
 

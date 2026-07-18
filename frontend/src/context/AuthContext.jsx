@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getMe } from '../services/api.js';
+import { getMe, prefetchUserWorkspace } from '../services/api.js';
 import { supabase, isSupabaseConfigured } from '../services/supabase.js';
 
 const AuthContext = createContext(null);
@@ -22,6 +22,9 @@ export function AuthProvider({ children }) {
       try {
         const profile = await getMe();
         setUser(profile.user);
+        if (profile.user?.id && Number(profile.user.monthly_budget) > 0) {
+          prefetchUserWorkspace(profile.user.id);
+        }
         return profile.user;
       } catch (error) {
         lastError = error;
