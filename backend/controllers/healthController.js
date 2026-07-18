@@ -6,7 +6,11 @@ import { config } from '../config/env.js';
 
 // GET /api/health
 export const getHealth = async (req, res) => {
-  res.status(200).json({ status: 'Server Running' });
+  res.status(200).json({
+    status: 'Server Running',
+    commit: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || null,
+    environment: config.env,
+  });
 };
 
 // GET /api/health/ai
