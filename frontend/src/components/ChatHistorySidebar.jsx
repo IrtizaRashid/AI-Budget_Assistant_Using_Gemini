@@ -2,7 +2,6 @@
 // (Today / Yesterday / Last 7 Days / Last Month / Older), with a New Chat
 // button. Clicking a conversation reopens it in the chat window.
 import { useChat } from '../context/ChatContext.jsx';
-import { useState } from 'react';
 
 // Bucket a session's last_activity into a human-friendly group.
 const groupFor = (iso) => {
@@ -22,21 +21,11 @@ const GROUP_ORDER = ['Today', 'Yesterday', 'Last 7 Days', 'Last Month', 'Older']
 
 export default function ChatHistorySidebar() {
   const { sessions, sessionId, loadSession, newChat, deleteSession } = useChat();
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const handleDelete = async (e, sessionId) => {
+  // Instant delete — no confirmation step needed.
+  const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (deleteConfirm === sessionId) {
-      await deleteSession(sessionId);
-      setDeleteConfirm(null);
-    } else {
-      setDeleteConfirm(sessionId);
-    }
-  };
-
-  const handleLoad = (id) => {
-    if (deleteConfirm !== null) setDeleteConfirm(null);
-    loadSession(id);
+    await deleteSession(id);
   };
 
   // Group sessions preserving the backend's newest-first order.
@@ -79,7 +68,7 @@ export default function ChatHistorySidebar() {
                   }`}
                 >
                   <button
-                    onClick={() => handleLoad(s.id)}
+                    onClick={() => loadSession(s.id)}
                     className={`flex-1 truncate rounded-lg px-3 py-2 text-left text-xs transition ${
                       s.id === sessionId
                         ? 'text-white'
@@ -87,14 +76,16 @@ export default function ChatHistorySidebar() {
                     }`}
                     title={s.title}
                   >
-                    {s.title || 'New chat'}
+                    💬 {s.title || 'New chat'}
                   </button>
                   <button
                     onClick={(e) => handleDelete(e, s.id)}
-                    className="rounded-lg px-2 py-2 text-xs text-slate-400 hover:text-red-400 hover:bg-white hover:bg-opacity-5 transition"
-                    title={deleteConfirm === s.id ? 'Confirm delete' : 'Delete chat'}
+                    className="group/del rounded-lg px-2 py-2 text-slate-400 hover:text-red-400 hover:bg-white hover:bg-opacity-5 transition"
+                    title="Delete chat"
                   >
-                    {deleteConfirm === s.id ? '✓' : '×'}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
                   </button>
                 </div>
               ))}

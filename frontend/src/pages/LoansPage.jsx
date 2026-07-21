@@ -119,7 +119,7 @@ export default function LoansPage() {
   const totalEver   = tabLoans.reduce((s, l) => s + Number(l.original_amount), 0);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0b0712]">
+    <div className="relative min-h-screen overflow-hidden bg-[#0d0d1a]">
       <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600 bg-opacity-20 blur-[120px]" />
       <div className="pointer-events-none absolute right-0 top-40 h-96 w-96 rounded-full bg-purple-600 bg-opacity-20 blur-[120px]" />
 

@@ -164,7 +164,7 @@ export default function Dashboard() {
     hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div className="relative min-h-screen bg-[#0b0712]">
+    <div className="relative min-h-screen bg-[#0d0d1a]">
       {/* Ambient background blobs */}
       <div className="pointer-events-none fixed -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-fuchsia-600 bg-opacity-20 blur-[140px]" />
       <div className="pointer-events-none fixed right-0 top-40 h-[400px] w-[400px] rounded-full bg-purple-600 bg-opacity-20 blur-[140px]" />

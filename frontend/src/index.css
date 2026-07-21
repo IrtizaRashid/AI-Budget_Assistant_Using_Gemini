@@ -38,8 +38,7 @@ html.light body {
   color: #102033;
 }
 
-html.light [class*="bg-[#0d0d1a]"],
-html.light [class*="bg-[#0b0712]"] {
+html.light [class*="bg-[#0d0d1a]"] {
   background-color: #f4f7fb !important;
 }
 
