@@ -617,7 +617,7 @@ export default function ChatBox({
   };
 
   return (
-    <div className="flex h-[28rem] flex-col overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+    <div className="flex h-[28rem] flex-col overflow-hidden rounded-2xl border border-white border-opacity-10 bg-transparent backdrop-blur-sm">
       {/* Header */}
       <div className="flex items-start justify-between gap-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 px-6 py-4 shadow-lg shadow-[rgba(217,70,239,0.2)]">
         <div>

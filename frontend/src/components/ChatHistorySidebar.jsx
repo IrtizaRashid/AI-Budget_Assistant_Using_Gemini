@@ -36,7 +36,7 @@ export default function ChatHistorySidebar() {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-white border-opacity-10 bg-white bg-opacity-4 backdrop-blur-sm">
+    <div className="flex h-full flex-col rounded-2xl border border-white border-opacity-10 bg-transparent backdrop-blur-sm">
       <div className="border-b border-white border-opacity-10 p-3">
         <button
           onClick={() => newChat()}

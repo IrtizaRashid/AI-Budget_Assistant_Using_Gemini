@@ -99,17 +99,24 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
-  // Delete a conversation from the history sidebar.
+  // Delete a conversation from the history sidebar (optimistic update for speed).
   const deleteSessionHandler = useCallback(async (id) => {
+    // 1. Optimistic update: immediately remove from local state
+    setSessions((prev) => prev.filter(s => s.id !== id));
+    
+    // 2. If we deleted the current session, start a new chat immediately
+    if (sessionId === id) {
+      newChat(); // non-blocking
+    }
+
     try {
+      // 3. Perform the actual API call in the background
       await deleteSession(id);
-      await refreshSessions();
-      // If we deleted the current session, start a new chat
-      if (sessionId === id) {
-        await newChat();
-      }
+      // 4. Optionally refresh to ensure sync
+      refreshSessions();
     } catch {
-      /* ignore */
+      // 5. On failure, revert by refreshing from server
+      refreshSessions();
     }
   }, [sessionId, refreshSessions, newChat]);
 
