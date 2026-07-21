@@ -7,6 +7,7 @@
 //   4. Error / 404 handlers (registered last)
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 
 import { config } from './config/env.js';
 import { testConnection } from './database/db.js';
@@ -43,6 +44,7 @@ const isAllowedOrigin = (origin) =>
   /^http:\/\/(localhost|127\.0\.0\.1):517\d$/.test(origin || '') ||
   /\.vercel\.app$/.test(origin);
 
+app.use(compression()); // Compress all responses with gzip/deflate
 app.use(
   cors({
     origin: (origin, callback) => {

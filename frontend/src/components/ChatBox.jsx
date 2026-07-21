@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sendChatMessage } from '../services/chatService.js';
 import { useChat } from '../context/ChatContext.jsx';
 import { formatPKR } from '../utils/format.js';
@@ -459,6 +459,46 @@ export default function ChatBox({
   const [input, setInput] = useState('');
   // Speech Synthesis: read AI replies aloud when ON.
   const [speakResponses, setSpeakResponses] = useState(false);
+  // Queue to hold messages while the AI is busy thinking
+  const [messageQueue, setMessageQueue] = useState([]);
+
+  // ── Auto-scroll ──────────────────────────────────────────────────────────
+  // Follow the newest message like ChatGPT/Claude: stick to the bottom unless
+  // the user has deliberately scrolled up to read older messages.
+  const scrollRef = useRef(null);
+  const nearBottomRef = useRef(true);
+
+  const scrollToBottom = () => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  // Opening or switching a conversation always jumps to the latest message.
+  useEffect(() => {
+    nearBottomRef.current = true;
+    scrollToBottom();
+  }, [sessionId]);
+
+  // New messages (or the thinking indicator) keep the view pinned to the
+  // bottom — but only while the user is already near it.
+  useEffect(() => {
+    if (nearBottomRef.current) scrollToBottom();
+  }, [messages, loading, messageQueue.length]);
+
+  // Watch the queue and process the next message whenever the AI is free
+  useEffect(() => {
+    if (messageQueue.length > 0 && !loading && !budgetFull) {
+      const nextText = messageQueue[0];
+      setMessageQueue((prev) => prev.slice(1));
+      processMessage(nextText);
+    }
+  }, [messageQueue, loading, budgetFull]);
 
 
   // Read text aloud with the browser's Speech Synthesis API.
@@ -480,15 +520,24 @@ export default function ChatBox({
     window.speechSynthesis.speak(utterance);
   };
 
-  // Core send routine — accepts the text directly so it works for both typed
-  // input AND voice transcripts (avoids relying on async state updates).
-  const sendMessage = async (rawText) => {
+  // Queue the user's message so they can keep typing without waiting.
+  const sendMessage = (rawText) => {
     const text = (rawText ?? '').trim();
-    if (!text || loading || budgetFull) return;
+    if (!text || budgetFull) return;
 
     // Show the user's message immediately and clear the input.
     setMessages((prev) => [...prev, { role: 'user', text }]);
     setInput('');
+
+    // Sending always snaps the view back to the newest message.
+    nearBottomRef.current = true;
+
+    // Push the actual text into the queue for processing
+    setMessageQueue((prev) => [...prev, text]);
+  };
+
+  // Perform the actual API call for a queued message.
+  const processMessage = async (text) => {
     setLoading(true);
 
     try {
@@ -649,7 +698,7 @@ export default function ChatBox({
       </div>
 
       {/* Scrollable chat history */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {groupMessagesByDate(messages).map((item, i) => (
           item.type === 'date' ? (
             <div key={`date-${i}`} className="flex justify-center">
@@ -785,6 +834,15 @@ export default function ChatBox({
           </div>
         )}
 
+        {/* Queued messages — sent automatically once the AI finishes */}
+        {messageQueue.length > 0 && (
+          <div className="flex justify-end">
+            <span className="rounded-full bg-white bg-opacity-5 px-3 py-1 text-[10px] font-medium text-slate-400">
+              ⏳ {messageQueue.length} message{messageQueue.length > 1 ? 's' : ''} queued — will send when the AI finishes
+            </span>
+          </div>
+        )}
+
       </div>
 
       {/* When the monthly budget is fully used, lock all expense input. */}
@@ -802,20 +860,25 @@ export default function ChatBox({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={budgetFull ? 'Monthly budget reached' : 'Type or speak a message…'}
-          disabled={loading || budgetFull}
+          placeholder={
+            budgetFull
+              ? 'Monthly budget reached'
+              : loading
+              ? 'AI is thinking — your message will be queued…'
+              : 'Type or speak a message…'
+          }
+          disabled={budgetFull}
           className="flex-1 rounded-xl border border-white border-opacity-10 bg-white bg-opacity-5 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-50"
         />
 
-        {/* Microphone (Web Speech API) — also disabled when budget is full */}
         <VoiceInput
           onResult={handleVoiceResult}
           onError={handleVoiceError}
-          disabled={loading || budgetFull}
+          disabled={budgetFull}
         />
         <button
           onClick={handleSend}
-          disabled={loading || budgetFull || !input.trim()}
+          disabled={budgetFull || !input.trim()}
           className="rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white shadow shadow-[rgba(217,70,239,0.3)] transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Send

@@ -1,30 +1,42 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
-import BudgetSetup from './pages/BudgetSetup.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
-import ForgotPassword from './pages/ForgotPassword.jsx';
+import { useEffect, useState, lazy, Suspense } from 'react';
+import { prefetchUserWorkspace } from './services/api.js';
+
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AppLayout from './layouts/AppLayout.jsx';
-import IncomePage from './pages/IncomePage.jsx';
-import ExpensesPage from './pages/ExpensesPage.jsx';
-import BudgetPage from './pages/BudgetPage.jsx';
-import SavingsPage from './pages/SavingsPage.jsx';
-import LoansPage from './pages/LoansPage.jsx';
-import InvestmentsPage from './pages/InvestmentsPage.jsx';
-import TransactionsPage from './pages/TransactionsPage.jsx';
-import AnalyticsPage from './pages/AnalyticsPage.jsx';
-import AIAssistantPage from './pages/AIAssistantPage.jsx';
-import SettingsPage from './pages/SettingsPage.jsx';
-import UploadPage from './pages/UploadPage.jsx';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
-import { useEffect, useState } from 'react';
-import { prefetchUserWorkspace } from './services/api.js';
+
+// Eagerly loaded for fast initial view
+import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
+
+// Lazily loaded pages for code splitting
+const BudgetSetup = lazy(() => import('./pages/BudgetSetup.jsx'));
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
+const IncomePage = lazy(() => import('./pages/IncomePage.jsx'));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage.jsx'));
+const BudgetPage = lazy(() => import('./pages/BudgetPage.jsx'));
+const SavingsPage = lazy(() => import('./pages/SavingsPage.jsx'));
+const LoansPage = lazy(() => import('./pages/LoansPage.jsx'));
+const InvestmentsPage = lazy(() => import('./pages/InvestmentsPage.jsx'));
+const TransactionsPage = lazy(() => import('./pages/TransactionsPage.jsx'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage.jsx'));
+const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage.jsx'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage.jsx'));
+const UploadPage = lazy(() => import('./pages/UploadPage.jsx'));
 
 // A user who hasn't finished budget setup has monthly_budget = 0.
 const needsBudgetSetup = (user) =>
   Boolean(user) && (!user.monthly_budget || Number(user.monthly_budget) === 0);
+
+// Global fallback for lazy-loaded pages
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#0d0d1a]">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
+  </div>
+);
 
 export default function App() {
   const { user, loading, refreshUser } = useAuth();
@@ -65,53 +77,51 @@ export default function App() {
   }, [user?.id, mustSetup]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0d0d1a]">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
     <>
-      <Routes>
-      {/* Public routes */}
-      <Route path="/login"    element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
-      <Route path="/forgot-password" element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
-      <Route path="/reset-password" element={<Navigate to="/forgot-password" replace />} />
-      <Route path="/upload-demo" element={<UploadPage />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login"    element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+          <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
+          <Route path="/forgot-password" element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
+          <Route path="/reset-password" element={<Navigate to="/forgot-password" replace />} />
+          <Route path="/upload-demo" element={<UploadPage />} />
 
-      {/* Budget setup — protected but not in sidebar layout.
-          Send already-configured users back to the dashboard. */}
-      <Route
-        path="/setup"
-        element={
-          <ProtectedRoute>
-            {mustSetup ? <BudgetSetup /> : <Navigate to="/dashboard" replace />}
-          </ProtectedRoute>
-        }
-      />
+          {/* Budget setup — protected but not in sidebar layout.
+              Send already-configured users back to the dashboard. */}
+          <Route
+            path="/setup"
+            element={
+              <ProtectedRoute>
+                {mustSetup ? <BudgetSetup /> : <Navigate to="/dashboard" replace />}
+              </ProtectedRoute>
+            }
+          />
 
-      {/* Upload page */}
-      <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+          {/* Upload page */}
+          <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
 
-      {/* App routes wrapped in sidebar layout */}
-      <Route path="/dashboard"    element={<AuthedLayout><Dashboard /></AuthedLayout>} />
-      <Route path="/income"       element={<AuthedLayout><IncomePage /></AuthedLayout>} />
-      <Route path="/expenses"     element={<AuthedLayout><ExpensesPage /></AuthedLayout>} />
-      <Route path="/budget"       element={<AuthedLayout><BudgetPage /></AuthedLayout>} />
-      <Route path="/savings"      element={<AuthedLayout><SavingsPage /></AuthedLayout>} />
-      <Route path="/loans"        element={<AuthedLayout><LoansPage /></AuthedLayout>} />
-      <Route path="/investments"  element={<AuthedLayout><InvestmentsPage /></AuthedLayout>} />
-      <Route path="/transactions" element={<AuthedLayout><TransactionsPage /></AuthedLayout>} />
-      <Route path="/analytics"    element={<AuthedLayout><AnalyticsPage /></AuthedLayout>} />
-      <Route path="/ai"           element={<AuthedLayout><AIAssistantPage /></AuthedLayout>} />
-      <Route path="/settings"     element={<AuthedLayout><SettingsPage /></AuthedLayout>} />
+          {/* App routes wrapped in sidebar layout */}
+          <Route path="/dashboard"    element={<AuthedLayout><Dashboard /></AuthedLayout>} />
+          <Route path="/income"       element={<AuthedLayout><IncomePage /></AuthedLayout>} />
+          <Route path="/expenses"     element={<AuthedLayout><ExpensesPage /></AuthedLayout>} />
+          <Route path="/budget"       element={<AuthedLayout><BudgetPage /></AuthedLayout>} />
+          <Route path="/savings"      element={<AuthedLayout><SavingsPage /></AuthedLayout>} />
+          <Route path="/loans"        element={<AuthedLayout><LoansPage /></AuthedLayout>} />
+          <Route path="/investments"  element={<AuthedLayout><InvestmentsPage /></AuthedLayout>} />
+          <Route path="/transactions" element={<AuthedLayout><TransactionsPage /></AuthedLayout>} />
+          <Route path="/analytics"    element={<AuthedLayout><AnalyticsPage /></AuthedLayout>} />
+          <Route path="/ai"           element={<AuthedLayout><AIAssistantPage /></AuthedLayout>} />
+          <Route path="/settings"     element={<AuthedLayout><SettingsPage /></AuthedLayout>} />
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
-      </Routes>
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+        </Routes>
+      </Suspense>
       <ApiKeyModal
         open={Boolean(user && keyPrompt.open)}
         reason={keyPrompt.reason}

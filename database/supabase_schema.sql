@@ -189,6 +189,14 @@ CREATE TABLE IF NOT EXISTS misc_transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_misc_tx_user ON misc_transactions(user_id);
 
+-- ------------------------------------------------------------
+--  Composite Indexes for Performance Optimization
+-- ------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_expenses_user_date ON expenses(user_id, expense_date DESC);
+CREATE INDEX IF NOT EXISTS idx_income_user_date ON income(user_id, received_date DESC);
+CREATE INDEX IF NOT EXISTS idx_misc_tx_user_date ON misc_transactions(user_id, tx_date DESC);
+CREATE INDEX IF NOT EXISTS idx_categories_user_name ON budget_categories(user_id, category_name);
+
 -- ============================================================
 --  AI MEMORY SYSTEM
 -- ============================================================
