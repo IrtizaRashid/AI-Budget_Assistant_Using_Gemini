@@ -7,10 +7,10 @@
 //   error           : boolean
 
 const PRIORITY_STYLES = {
-  critical: 'border-red-500/40 bg-red-500/10',
-  high:     'border-orange-500/40 bg-orange-500/10',
-  medium:   'border-yellow-500/40 bg-yellow-500/10',
-  low:      'border-emerald-500/40 bg-emerald-500/10',
+  critical: 'border-red-500 border-opacity-40 bg-red-500 bg-opacity-10',
+  high:     'border-orange-500 border-opacity-40 bg-orange-500 bg-opacity-10',
+  medium:   'border-yellow-500 border-opacity-40 bg-yellow-500 bg-opacity-10',
+  low:      'border-emerald-500 border-opacity-40 bg-emerald-500 bg-opacity-10',
 };
 
 const PRIORITY_DOT = {
@@ -53,12 +53,12 @@ export default function AIRecommendations({
         </div>
 
         {/* Financial Health Score */}
-        <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="mb-6 rounded-xl border border-white border-opacity-10 bg-white bg-opacity-5 p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium text-slate-300">Financial Health Score</span>
             <span className="text-2xl font-bold text-emerald-400">{healthScore}/100</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-500"
               style={{ width: `${healthScore}%` }}
@@ -69,7 +69,7 @@ export default function AIRecommendations({
         {/* Loading */}
         {loading && (
           <div className="flex items-center gap-3 py-4 text-slate-400">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-fuchsia-500" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-opacity-10 border-t-fuchsia-500" />
             <span className="text-sm">Analysing your spending…</span>
           </div>
         )}
@@ -126,7 +126,7 @@ export default function AIRecommendations({
                   </div>
                   <p className="text-xs leading-relaxed text-slate-400">{rec.detail}</p>
                   {rec.category && (
-                    <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                    <span className="mt-1.5 inline-block rounded-full bg-white bg-opacity-10 px-2 py-0.5 text-[10px] font-medium text-slate-400">
                       {rec.category}
                     </span>
                   )}

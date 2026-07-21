@@ -47,11 +47,11 @@ export default function ChatHistorySidebar() {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-      <div className="border-b border-white/10 p-3">
+    <div className="flex h-full flex-col rounded-2xl border border-white border-opacity-10 bg-white bg-opacity-4 backdrop-blur-sm">
+      <div className="border-b border-white border-opacity-10 p-3">
         <button
           onClick={() => newChat()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white shadow shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white shadow shadow-[rgba(217,70,239,0.3)] transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-[0.98]"
         >
           <span className="text-base leading-none">＋</span> New Chat
         </button>
@@ -74,13 +74,13 @@ export default function ChatHistorySidebar() {
                   key={s.id}
                   className={`flex items-center gap-1 rounded-lg transition ${
                     s.id === sessionId
-                      ? 'bg-fuchsia-500/20'
-                      : 'hover:bg-white/10'
+                      ? 'bg-fuchsia-500 bg-opacity-20'
+                      : 'hover:bg-white hover:bg-opacity-10'
                   }`}
                 >
                   <button
                     onClick={() => handleLoad(s.id)}
-                    className="flex-1 truncate rounded-lg px-3 py-2 text-left text-xs transition ${
+                    className={`flex-1 truncate rounded-lg px-3 py-2 text-left text-xs transition ${
                       s.id === sessionId
                         ? 'text-white'
                         : 'text-slate-300'
@@ -91,7 +91,7 @@ export default function ChatHistorySidebar() {
                   </button>
                   <button
                     onClick={(e) => handleDelete(e, s.id)}
-                    className="rounded-lg px-2 py-2 text-xs text-slate-400 hover:text-red-400 hover:bg-white/5 transition"
+                    className="rounded-lg px-2 py-2 text-xs text-slate-400 hover:text-red-400 hover:bg-white hover:bg-opacity-5 transition"
                     title={deleteConfirm === s.id ? 'Confirm delete' : 'Delete chat'}
                   >
                     {deleteConfirm === s.id ? '✓' : '×'}

@@ -58,13 +58,13 @@ export default function AnalyticsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-10">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
         </div>
       ) : (
         <>
           {/* Summary Cards */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-xl">
                   💰
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-xl">
                   💸
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-xl">
                   📊
@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-xl">
                   📈
@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Spending by Category */}
-          <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+          <div className="mb-6 rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
             <h2 className="mb-4 text-lg font-semibold text-white">Spending by Category</h2>
             {categoryData.length === 0 ? (
               <p className="text-slate-500">No expense data available.</p>
@@ -128,7 +128,7 @@ export default function AnalyticsPage() {
                         <span className="ml-2 text-xs text-slate-500">{item.percentage}%</span>
                       </div>
                     </div>
-                    <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 transition-all"
                         style={{ width: `${item.percentage}%` }}
@@ -142,7 +142,7 @@ export default function AnalyticsPage() {
 
           {/* Budget vs Actual */}
           {stats && stats.allocated && stats.spent && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
               <h2 className="mb-4 text-lg font-semibold text-white">Budget vs Actual Spending</h2>
               <div className="space-y-4">
                 {stats.allocated.map((alloc, i) => {
@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
                           <span className="ml-2 text-xs text-slate-500">/ {formatPKR(alloc.amount)}</span>
                         </div>
                       </div>
-                      <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+                      <div className="h-3 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
                         <div
                           className={`h-full rounded-full transition-all ${
                             isOverBudget

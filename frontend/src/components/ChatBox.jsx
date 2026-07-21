@@ -151,7 +151,7 @@ const InsufficientSavingsCard = ({ data, categories = [], userId, onCancelled, o
           </button>
           <button
             onClick={onCancelled}
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 transition"
+            className="flex-1 rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white hover:bg-opacity-10 transition"
           >
             Cancel investment
           </button>
@@ -165,7 +165,7 @@ const InsufficientSavingsCard = ({ data, categories = [], userId, onCancelled, o
             <select
               value={fromCat}
               onChange={e => setFromCat(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-[#1a0d2e] px-3 py-2 text-xs text-white focus:border-fuchsia-500 focus:outline-none"
+              className="w-full rounded-lg border border-white border-opacity-10 bg-[#1a0d2e] px-3 py-2 text-xs text-white focus:border-fuchsia-500 focus:outline-none"
             >
               <option value="">— pick a category —</option>
               {otherCats.map(c => (
@@ -181,7 +181,7 @@ const InsufficientSavingsCard = ({ data, categories = [], userId, onCancelled, o
               type="number" min="1"
               value={transferAmt}
               onChange={e => setTransferAmt(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-[#1a0d2e] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none"
+              className="w-full rounded-lg border border-white border-opacity-10 bg-[#1a0d2e] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none"
               placeholder={`Min Rs ${Number(shortfall).toLocaleString()}`}
             />
           </div>
@@ -190,7 +190,7 @@ const InsufficientSavingsCard = ({ data, categories = [], userId, onCancelled, o
             <button onClick={handleTransfer} className="flex-1 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 px-3 py-2 text-xs font-semibold text-white hover:opacity-90 transition">
               Transfer & Invest
             </button>
-            <button onClick={onCancelled} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 transition">
+            <button onClick={onCancelled} className="rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white hover:bg-opacity-10 transition">
               Cancel
             </button>
           </div>
@@ -199,7 +199,7 @@ const InsufficientSavingsCard = ({ data, categories = [], userId, onCancelled, o
 
       {step === 'loading' && (
         <div className="flex items-center gap-2 text-xs text-slate-300">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-fuchsia-400" />
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-opacity-20 border-t-fuchsia-400" />
           Transferring and investing…
         </div>
       )}
@@ -410,7 +410,7 @@ function LoanList({ loans = [] }) {
       <div className="mb-2">
         <p className="mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wide">{icon} {title}</p>
         {items.map((l) => (
-          <div key={l.id} className="flex justify-between gap-3 border-t border-white/10 py-1 text-xs">
+          <div key={l.id} className="flex justify-between gap-3 border-t border-white border-opacity-10 py-1 text-xs">
             <span className="text-slate-300">{l.person_name}{l.description ? ` · ${l.description}` : ''}</span>
             <span className={`font-semibold shrink-0 ${amountClass} ${l.status === 'paid' ? 'line-through opacity-50' : ''}`}>
               {formatPKR(l.amount)}
@@ -617,9 +617,9 @@ export default function ChatBox({
   };
 
   return (
-    <div className="flex h-[28rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
+    <div className="flex h-[28rem] flex-col overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 px-6 py-4 shadow-lg shadow-fuchsia-500/20">
+      <div className="flex items-start justify-between gap-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 px-6 py-4 shadow-lg shadow-[rgba(217,70,239,0.2)]">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
             <span>🤖</span> AI Assistant
@@ -641,7 +641,7 @@ export default function ChatBox({
           className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition ${
             speakResponses
               ? 'bg-white text-fuchsia-700'
-              : 'bg-white/20 text-white hover:bg-white/30'
+              : 'bg-white bg-opacity-20 text-white hover:bg-white hover:bg-opacity-30'
           }`}
         >
           🔊 {speakResponses ? 'Clear voice' : 'OFF'}
@@ -653,7 +653,7 @@ export default function ChatBox({
         {groupMessagesByDate(messages).map((item, i) => (
           item.type === 'date' ? (
             <div key={`date-${i}`} className="flex justify-center">
-              <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-white/5 rounded-full">
+              <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-white bg-opacity-5 rounded-full">
                 {item.label}
               </span>
             </div>
@@ -669,8 +669,8 @@ export default function ChatBox({
                   item.data.role === 'user'
                     ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white'
                     : item.data.isError
-                    ? 'bg-red-500/15 text-red-300'
-                    : 'bg-white/10 text-slate-200'
+                    ? 'bg-red-500 bg-opacity-15 text-red-300'
+                    : 'bg-white bg-opacity-10 text-slate-200'
                 }`}
               >
               {/* Interactive cards */}
@@ -753,7 +753,7 @@ export default function ChatBox({
                   {item.data.expenses.map((e) => (
                     <li
                       key={e.id}
-                      className="flex justify-between gap-4 border-t border-white/10 pt-1 text-xs"
+                      className="flex justify-between gap-4 border-t border-white border-opacity-10 pt-1 text-xs"
                     >
                       <span>
                         {e.category}
@@ -772,7 +772,7 @@ export default function ChatBox({
         {/* Loading indicator */}
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-white/10 px-4 py-2 text-sm text-slate-400">
+            <div className="rounded-2xl bg-white bg-opacity-10 px-4 py-2 text-sm text-slate-400">
               <span className="inline-flex items-center gap-2">
                 <span className="inline-flex gap-1">
                   <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400 [animation-delay:-0.3s]" />
@@ -789,14 +789,14 @@ export default function ChatBox({
 
       {/* When the monthly budget is fully used, lock all expense input. */}
       {budgetFull && (
-        <div className="border-t border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-xs font-medium text-amber-300">
+        <div className="border-t border-amber-500 border-opacity-20 bg-amber-500 bg-opacity-10 px-4 py-2 text-center text-xs font-medium text-amber-300">
           Monthly budget fully utilized — delete an expense or start a new month
           to add more.
         </div>
       )}
 
       {/* Input + Voice + Send */}
-      <div className="flex items-center gap-2 border-t border-white/10 p-3">
+      <div className="flex items-center gap-2 border-t border-white border-opacity-10 p-3">
         <input
           type="text"
           value={input}
@@ -804,7 +804,7 @@ export default function ChatBox({
           onKeyDown={handleKeyDown}
           placeholder={budgetFull ? 'Monthly budget reached' : 'Type or speak a message…'}
           disabled={loading || budgetFull}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-50"
+          className="flex-1 rounded-xl border border-white border-opacity-10 bg-white bg-opacity-5 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-50"
         />
 
         {/* Microphone (Web Speech API) — also disabled when budget is full */}
@@ -816,7 +816,7 @@ export default function ChatBox({
         <button
           onClick={handleSend}
           disabled={loading || budgetFull || !input.trim()}
-          className="rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white shadow shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white shadow shadow-[rgba(217,70,239,0.3)] transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Send
         </button>

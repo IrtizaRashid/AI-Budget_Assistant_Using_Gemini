@@ -45,10 +45,10 @@ export function Panel({ title, description, action, children, className = '' }) 
 
 export function MetricCard({ label, value, detail, tone = 'blue' }) {
   const tones = {
-    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
-    green: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
-    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
-    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-500 dark:bg-opacity-10 dark:text-blue-300',
+    green: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500 dark:bg-opacity-10 dark:text-emerald-300',
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500 dark:bg-opacity-10 dark:text-amber-300',
+    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-500 dark:bg-opacity-10 dark:text-rose-300',
     slate: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
   };
 
@@ -70,7 +70,7 @@ export function Toolbar({ search, onSearch, placeholder = 'Search...', children 
         value={search}
         onChange={(event) => onSearch?.(event.target.value)}
         placeholder={placeholder}
-        className="min-h-10 flex-1 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+        className="min-h-10 flex-1 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
       />
       {children}
     </div>
@@ -90,7 +90,7 @@ export function EmptyState({ title, description, action }) {
 export function PrimaryButton({ children, className = '', ...props }) {
   return (
     <button
-      className={`min-h-10 rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`min-h-10 rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-30 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
@@ -101,7 +101,7 @@ export function PrimaryButton({ children, className = '', ...props }) {
 export function SecondaryButton({ children, className = '', ...props }) {
   return (
     <button
-      className={`min-h-10 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 ${className}`}
+      className={`min-h-10 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 ${className}`}
       {...props}
     >
       {children}

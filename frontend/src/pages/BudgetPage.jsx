@@ -89,7 +89,7 @@ export default function BudgetPage() {
 
       {/* Summary Cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-xl">
               💰
@@ -100,7 +100,7 @@ export default function BudgetPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-xl">
               💸
@@ -111,7 +111,7 @@ export default function BudgetPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-xl">
               🏦
@@ -125,23 +125,23 @@ export default function BudgetPage() {
       </div>
 
       {/* Categories List */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-        <div className="border-b border-white/10 px-6 py-4">
+      <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+        <div className="border-b border-white border-opacity-10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Budget Categories</h2>
         </div>
         {error && (
-          <div className="border-b border-red-500/20 bg-red-500/10 px-6 py-3 text-sm text-red-300">
+          <div className="border-b border-red-500 border-opacity-20 bg-red-500 bg-opacity-10 px-6 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
           </div>
         ) : categories.length === 0 ? (
           <p className="px-6 py-10 text-center text-slate-500">No budget categories set up yet.</p>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-white divide-opacity-5">
             {categories.map((category) => {
               const spent = Number(category.spent_amount ?? category.spent ?? 0);
               const allocated = Number(category.allocated_amount ?? category.allocated ?? 0);
@@ -154,7 +154,7 @@ export default function BudgetPage() {
                 <div key={category.id} className="px-6 py-4">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="rounded-full bg-fuchsia-500/15 px-3 py-1 text-sm font-medium text-fuchsia-300">
+                      <span className="rounded-full bg-fuchsia-500 bg-opacity-15 px-3 py-1 text-sm font-medium text-fuchsia-300">
                         {name}
                       </span>
                       {isOverBudget && (
@@ -167,17 +167,17 @@ export default function BudgetPage() {
                           type="number"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-32 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-white focus:border-fuchsia-500 focus:outline-none"
+                          className="w-32 rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-1 text-sm text-white focus:border-fuchsia-500 focus:outline-none"
                         />
                         <button
                           onClick={() => handleSave(category.id)}
-                          className="rounded-lg bg-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/30"
+                          className="rounded-lg bg-emerald-500 bg-opacity-20 px-2 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500 hover:bg-opacity-30"
                         >
                           Save
                         </button>
                         <button
                           onClick={handleCancel}
-                          className="rounded-lg bg-white/5 px-2 py-1 text-xs font-medium text-slate-400 hover:bg-white/10"
+                          className="rounded-lg bg-white bg-opacity-5 px-2 py-1 text-xs font-medium text-slate-400 hover:bg-white hover:bg-opacity-10"
                         >
                           Cancel
                         </button>
@@ -197,7 +197,7 @@ export default function BudgetPage() {
                       {isOverBudget ? `-${formatPKR(Math.abs(remaining))}` : formatPKR(remaining)} remaining
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
                     <div
                       className={`h-full rounded-full transition-all ${
                         isOverBudget

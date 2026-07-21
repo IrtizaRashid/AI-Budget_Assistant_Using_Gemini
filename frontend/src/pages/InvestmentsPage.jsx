@@ -43,7 +43,7 @@ export default function InvestmentsPage() {
 
       {/* Summary Cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-xl">
               💰
@@ -54,7 +54,7 @@ export default function InvestmentsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-xl">
               📊
@@ -65,7 +65,7 @@ export default function InvestmentsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-xl">
               📈
@@ -78,7 +78,7 @@ export default function InvestmentsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-xl">
               %
@@ -94,20 +94,20 @@ export default function InvestmentsPage() {
       </div>
 
       {/* Portfolio List */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-        <div className="border-b border-white/10 px-6 py-4">
+      <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+        <div className="border-b border-white border-opacity-10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Portfolio</h2>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
           </div>
         ) : portfolio.length === 0 ? (
           <p className="px-6 py-10 text-center text-slate-500">No investments yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400">
+              <thead className="bg-white bg-opacity-5 text-slate-400">
                 <tr>
                   <th className="px-6 py-3 font-medium">Investment</th>
                   <th className="px-6 py-3 font-medium">Type</th>
@@ -117,7 +117,7 @@ export default function InvestmentsPage() {
                   <th className="px-6 py-3 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white divide-opacity-5">
                 {portfolio.map((investment) => {
                   const invested = Number(investment.invested_amount || 0);
                   const value = Number(investment.current_value || 0);
@@ -125,7 +125,7 @@ export default function InvestmentsPage() {
                   const returnPct = Number(investment.return_pct ?? (invested > 0 ? (returnVal / invested) * 100 : 0)).toFixed(2);
                   
                   return (
-                    <tr key={investment.id} className="transition hover:bg-white/5">
+                    <tr key={investment.id} className="transition hover:bg-white hover:bg-opacity-5">
                       <td className="px-6 py-4">
                         <p className="font-medium text-white">{investment.name}</p>
                         {investment.quantity !== null && investment.quantity !== undefined && (
@@ -144,8 +144,8 @@ export default function InvestmentsPage() {
                       <td className="px-6 py-4">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                           investment.status === 'active'
-                            ? 'bg-emerald-500/15 text-emerald-300'
-                            : 'bg-slate-500/15 text-slate-300'
+                            ? 'bg-emerald-500 bg-opacity-15 text-emerald-300'
+                            : 'bg-slate-500 bg-opacity-15 text-slate-300'
                         }`}>
                           {investment.status || 'active'}
                         </span>

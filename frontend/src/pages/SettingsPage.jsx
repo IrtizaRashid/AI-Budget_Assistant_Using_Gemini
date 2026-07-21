@@ -26,8 +26,8 @@ const writePref = (key, value) => localStorage.setItem(key, JSON.stringify(value
 // ── Reusable bits ───────────────────────────────────────────────────────────
 function Section({ icon, title, description, children }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-      <div className="flex items-start gap-3 border-b border-white/10 px-6 py-4">
+    <section className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+      <div className="flex items-start gap-3 border-b border-white border-opacity-10 px-6 py-4">
         <span className="text-xl">{icon}</span>
         <div>
           <h2 className="text-base font-semibold text-white">{title}</h2>
@@ -59,7 +59,7 @@ function Toggle({ checked, onChange }) {
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 rounded-full transition-colors ${
-        checked ? 'bg-fuchsia-600' : 'bg-white/15'
+        checked ? 'bg-fuchsia-600' : 'bg-white bg-opacity-15'
       }`}
     >
       <span
@@ -72,7 +72,7 @@ function Toggle({ checked, onChange }) {
 }
 
 const SELECT_CLS =
-  'rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500';
+  'rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-sm text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500';
 
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
@@ -192,7 +192,7 @@ export default function SettingsPage() {
           </p>
         </div>
         {status && (
-          <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300">
+          <span className="rounded-lg border border-emerald-500 border-opacity-30 bg-emerald-500 bg-opacity-10 px-3 py-1.5 text-xs font-medium text-emerald-300">
             {status}
           </span>
         )}
@@ -214,7 +214,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={logout}
-            className="w-full rounded-xl border border-red-500/20 bg-red-500/10 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
+            className="w-full rounded-xl border border-red-500 border-opacity-20 bg-red-500 bg-opacity-10 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500 hover:bg-opacity-20"
           >
             Log out
           </button>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
           <Row label="Theme" hint={theme === 'dark' ? 'Dark mode' : 'Light mode'}>
             <button
               onClick={toggleTheme}
-              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+              className="flex items-center gap-2 rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white hover:bg-opacity-10"
             >
               {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
             </button>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
               onClick={() => window.dispatchEvent(new CustomEvent('open-gemini-key-modal', {
                 detail: { message: 'Paste a new Gemini API key for this account.' },
               }))}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+              className="rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white hover:bg-opacity-10"
             >
               Change key
             </button>
@@ -317,7 +317,7 @@ export default function SettingsPage() {
             <button
               onClick={handleResetMonth}
               disabled={resetting}
-              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-50"
+              className="rounded-lg border border-amber-500 border-opacity-30 bg-amber-500 bg-opacity-10 px-4 py-2 text-sm font-medium text-amber-300 transition hover:bg-amber-500 hover:bg-opacity-20 disabled:opacity-50"
             >
               {resetting ? 'Resetting…' : 'Reset month'}
             </button>

@@ -9,8 +9,8 @@ export default function RecentExpenses({ expenses = [] }) {
   const recent = expenses.slice(0, 5);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-      <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+    <div className="overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+      <div className="border-b border-white border-opacity-10 px-6 py-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
         <button className="text-sm text-slate-400 hover:text-white transition-colors">
           Export
@@ -24,7 +24,7 @@ export default function RecentExpenses({ expenses = [] }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
-            <thead className="bg-white/5 text-slate-400">
+            <thead className="bg-white bg-opacity-5 text-slate-400">
               <tr>
                 <th className="px-6 py-3 font-medium">Description</th>
                 <th className="px-6 py-3 font-medium">Category</th>
@@ -32,14 +32,14 @@ export default function RecentExpenses({ expenses = [] }) {
                 <th className="px-6 py-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-white divide-opacity-5">
               {recent.map((e) => (
-                <tr key={e.id} className="transition hover:bg-white/5">
+                <tr key={e.id} className="transition hover:bg-white hover:bg-opacity-5">
                   <td className="px-6 py-4 font-medium text-slate-200">
                     {e.description || '—'}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="rounded-full bg-fuchsia-500/15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
+                    <span className="rounded-full bg-fuchsia-500 bg-opacity-15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
                       {e.category}
                     </span>
                   </td>

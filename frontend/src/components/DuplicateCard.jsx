@@ -67,7 +67,7 @@ export default function DuplicateCard({ userId, expense, onChanged, onWarning })
         <button
           onClick={() => resolve('cancel')}
           disabled={busy}
-          className={`${btn} border border-white/20 text-slate-300 hover:bg-white/10`}
+          className={`${btn} border border-white border-opacity-20 text-slate-300 hover:bg-white hover:bg-opacity-10`}
         >
           Cancel
         </button>

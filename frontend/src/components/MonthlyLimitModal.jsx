@@ -11,9 +11,9 @@ export default function MonthlyLimitModal({ open, data, onClose }) {
   if (!open || !data) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-[#15101f] p-6 text-center shadow-2xl">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-2xl">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-red-500 border-opacity-30 bg-[#15101f] p-6 text-center shadow-2xl">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-500 bg-opacity-15 text-2xl">
           🚫
         </div>
         <h3 className="text-lg font-bold text-white">

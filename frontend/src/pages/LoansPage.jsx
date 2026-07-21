@@ -7,8 +7,8 @@ import NavBar from '../components/NavBar.jsx';
 const TABS = ['given', 'taken'];
 
 const STATUS_BADGE = {
-  active: 'bg-amber-500/15 text-amber-300',
-  paid:   'bg-emerald-500/15 text-emerald-300',
+  active: 'bg-amber-500 bg-opacity-15 text-amber-300',
+  paid:   'bg-emerald-500 bg-opacity-15 text-emerald-300',
 };
 
 const formatDate = (raw) => {
@@ -18,7 +18,7 @@ const formatDate = (raw) => {
 
 function SummaryCard({ label, value, icon, color }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm`}>
+    <div className={`rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-5 backdrop-blur-sm`}>
       <div className="flex items-center gap-3">
         <span className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg ${color}`}>{icon}</span>
         <div>
@@ -46,7 +46,7 @@ function LoanRow({ loan, onChanged }) {
   };
 
   return (
-    <tr className="border-t border-white/5 transition hover:bg-white/[0.025]">
+    <tr className="border-t border-white border-opacity-5 transition hover:bg-[rgba(255,255,255,0.025)]">
       <td className="px-4 py-3">
         <p className="font-medium text-white capitalize">{loan.person_name}</p>
       </td>
@@ -73,13 +73,13 @@ function LoanRow({ loan, onChanged }) {
           {loan.status === 'active' && (
             <button onClick={handlePaid} disabled={busy}
               title="Mark as paid"
-              className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50">
+              className="rounded-lg bg-emerald-500 bg-opacity-15 px-2.5 py-1 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500 hover:bg-opacity-25 disabled:opacity-50">
               ✓ Paid
             </button>
           )}
           <button onClick={handleDelete} disabled={busy}
             title="Delete"
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40">
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500 hover:bg-opacity-10 hover:text-red-400 disabled:opacity-40">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -120,8 +120,8 @@ export default function LoansPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0b0712]">
-      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/20 blur-[120px]" />
-      <div className="pointer-events-none absolute right-0 top-40 h-96 w-96 rounded-full bg-purple-600/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600 bg-opacity-20 blur-[120px]" />
+      <div className="pointer-events-none absolute right-0 top-40 h-96 w-96 rounded-full bg-purple-600 bg-opacity-20 blur-[120px]" />
 
       <div className="relative mx-auto max-w-6xl px-4 py-10">
         <NavBar />
@@ -140,8 +140,8 @@ export default function LoansPage() {
             <button key={t} onClick={() => setTab(t)}
               className={`rounded-xl px-5 py-2 text-sm font-semibold capitalize transition ${
                 tab === t
-                  ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow shadow-fuchsia-500/20'
-                  : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow shadow-[rgba(217,70,239,0.2)]'
+                  : 'border border-white border-opacity-10 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10'
               }`}>
               {t === 'given' ? '🤝 Loans Given' : '💸 Loans Taken'}
             </button>
@@ -154,11 +154,11 @@ export default function LoansPage() {
             label="Outstanding"
             value={formatPKR(outstanding)}
             icon={tab === 'given' ? '📤' : '📥'}
-            color="bg-fuchsia-500/15"
+            color="bg-fuchsia-500 bg-opacity-15"
           />
-          <SummaryCard label="Active Loans" value={active.length} icon="⏳" color="bg-amber-500/15" />
-          <SummaryCard label="Paid Loans"   value={paid.length}   icon="✅" color="bg-emerald-500/15" />
-          <SummaryCard label="Total Ever"   value={formatPKR(totalEver)} icon="📊" color="bg-purple-500/15" />
+          <SummaryCard label="Active Loans" value={active.length} icon="⏳" color="bg-amber-500 bg-opacity-15" />
+          <SummaryCard label="Paid Loans"   value={paid.length}   icon="✅" color="bg-emerald-500 bg-opacity-15" />
+          <SummaryCard label="Total Ever"   value={formatPKR(totalEver)} icon="📊" color="bg-purple-500 bg-opacity-15" />
         </div>
 
         {/* Search + filter */}
@@ -167,12 +167,12 @@ export default function LoansPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by person or description…"
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+            className="flex-1 rounded-xl border border-white border-opacity-10 bg-white bg-opacity-5 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+            className="rounded-xl border border-white border-opacity-10 bg-white bg-opacity-5 px-4 py-2.5 text-sm text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -181,10 +181,10 @@ export default function LoansPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
+        <div className="overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-7 w-7 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+              <div className="h-7 w-7 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
               <span className="ml-3 text-slate-400 text-sm">Loading…</span>
             </div>
           ) : filtered.length === 0 ? (
@@ -205,7 +205,7 @@ export default function LoansPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 text-xs text-slate-400">
+                  <tr className="border-b border-white border-opacity-10 text-xs text-slate-400">
                     <th className="px-4 py-3 font-medium">Person</th>
                     <th className="px-4 py-3 font-medium">Amount</th>
                     <th className="px-4 py-3 font-medium">Description</th>

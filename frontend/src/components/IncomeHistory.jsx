@@ -39,9 +39,9 @@ export default function IncomeHistory({ income = [], onChanged }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
       {/* Header */}
-      <div className="border-b border-white/10 bg-gradient-to-r from-emerald-600/30 to-teal-600/30 px-4 py-3">
+      <div className="border-b border-white border-opacity-10 bg-gradient-to-r from-[rgba(5,150,105,0.3)] to-[rgba(13,148,136,0.3)] px-4 py-3">
         <h2 className="flex items-center gap-2 text-base font-semibold text-white">
           💵 Income History
         </h2>
@@ -59,14 +59,14 @@ export default function IncomeHistory({ income = [], onChanged }) {
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-white divide-opacity-5">
           {income.map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center gap-2 px-4 py-2.5 transition hover:bg-white/[0.03]"
+              className="flex items-center gap-2 px-4 py-2.5 transition hover:bg-[rgba(255,255,255,0.03)]"
             >
               {/* Icon */}
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-base">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500 bg-opacity-15 text-base">
                 {sourceIcon(entry.source)}
               </span>
 
@@ -77,7 +77,7 @@ export default function IncomeHistory({ income = [], onChanged }) {
                     {entry.source || 'Income'}
                   </p>
                   {entry.recurring ? (
-                    <span className="shrink-0 rounded-full bg-fuchsia-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-fuchsia-300">
+                    <span className="shrink-0 rounded-full bg-fuchsia-500 bg-opacity-15 px-1.5 py-0.5 text-[10px] font-semibold text-fuchsia-300">
                       recurring
                     </span>
                   ) : null}
@@ -107,7 +107,7 @@ export default function IncomeHistory({ income = [], onChanged }) {
                 onClick={() => handleDelete(entry.id)}
                 disabled={deletingId === entry.id}
                 title="Remove record"
-                className="shrink-0 rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
+                className="shrink-0 rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500 hover:bg-opacity-10 hover:text-red-400 disabled:opacity-40"
               >
                 {deletingId === entry.id ? (
                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
@@ -124,7 +124,7 @@ export default function IncomeHistory({ income = [], onChanged }) {
 
       {/* Total row */}
       {income.length > 0 && (
-        <div className="border-t border-white/10 bg-emerald-500/5 px-4 py-2 flex justify-between items-center">
+        <div className="border-t border-white border-opacity-10 bg-emerald-500 bg-opacity-5 px-4 py-2 flex justify-between items-center">
           <span className="text-xs font-medium text-slate-400">
             {income.length} income {income.length === 1 ? 'entry' : 'entries'}
           </span>

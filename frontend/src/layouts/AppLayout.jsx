@@ -68,10 +68,10 @@ export default function AppLayout({ children }) {
   const SidebarContent = ({ mobile = false }) => (
     <div className={`flex h-full flex-col ${mobile ? '' : ''}`}>
       {/* Brand + collapse toggle */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-white/10">
+      <div className="flex items-center justify-between px-4 py-5 border-b border-white border-opacity-10">
         {(!collapsed || mobile) && (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-lg shadow-lg shadow-fuchsia-500/30">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-lg shadow-lg shadow-[rgba(217,70,239,0.3)]">
               BA
             </span>
             <div className="min-w-0">
@@ -90,7 +90,7 @@ export default function AppLayout({ children }) {
         {!mobile && (
           <button
             onClick={() => setCollapsed((v) => !v)}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white ${collapsed ? 'mx-auto' : ''}`}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:bg-opacity-10 hover:text-white ${collapsed ? 'mx-auto' : ''}`}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? '→' : '←'}
@@ -115,8 +115,8 @@ export default function AppLayout({ children }) {
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                 isActive
-                  ? 'bg-gradient-to-r from-fuchsia-600/30 to-pink-600/20 text-fuchsia-300 border border-fuchsia-500/30'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
+                  ? 'bg-gradient-to-r from-[rgba(192,38,211,0.3)] to-[rgba(219,39,119,0.2)] text-fuchsia-300 border border-fuchsia-500 border-opacity-30'
+                  : 'text-slate-400 hover:bg-white hover:bg-opacity-5 hover:text-white border border-transparent'
               } ${collapsed && !mobile ? 'justify-center px-2' : ''}`
             }
             title={collapsed && !mobile ? label : undefined}
@@ -128,7 +128,7 @@ export default function AppLayout({ children }) {
       </nav>
 
       {/* User section at bottom */}
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-white border-opacity-10 p-3">
         <div
           className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-all ${
             collapsed && !mobile ? 'justify-center' : ''
@@ -146,7 +146,7 @@ export default function AppLayout({ children }) {
         </div>
         <button
           onClick={handleLogout}
-          className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-400 transition hover:bg-red-500/10 hover:text-red-400 ${
+          className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-400 transition hover:bg-red-500 hover:bg-opacity-10 hover:text-red-400 ${
             collapsed && !mobile ? 'justify-center' : ''
           }`}
           title="Logout"
@@ -162,7 +162,7 @@ export default function AppLayout({ children }) {
     <div className="flex h-screen overflow-hidden bg-[#0d0d1a] dark:bg-[#0d0d1a] text-slate-100">
       {/* ── Desktop sidebar ── */}
       <aside
-        className={`hidden md:flex flex-col bg-[#0a0a1f] border-r border-white/[0.06] flex-shrink-0 transition-[width] duration-250 ease-in-out ${
+        className={`hidden md:flex flex-col bg-[#0a0a1f] border-r border-[rgba(255,255,255,0.06)] flex-shrink-0 transition-[width] duration-250 ease-in-out ${
           collapsed ? 'w-16' : 'w-60'
         }`}
         style={{ transition: 'width 0.25s ease' }}
@@ -175,11 +175,11 @@ export default function AppLayout({ children }) {
         <div className="fixed inset-0 z-50 flex md:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
           {/* Drawer */}
-          <aside className="relative z-10 flex w-64 flex-col bg-[#0a0a1f] border-r border-white/[0.06]">
+          <aside className="relative z-10 flex w-64 flex-col bg-[#0a0a1f] border-r border-[rgba(255,255,255,0.06)]">
             <SidebarContent mobile />
           </aside>
         </div>
@@ -188,11 +188,11 @@ export default function AppLayout({ children }) {
       {/* ── Main area ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top header bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-white/[0.06] bg-[#0a0a1f]/80 px-4 backdrop-blur-sm">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[rgba(255,255,255,0.06)] bg-[#0a0a1f]/80 px-4 backdrop-blur-sm">
           {/* Left: hamburger (mobile) + search bar */}
           <div className="flex items-center gap-3 flex-1">
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white md:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white hover:bg-opacity-10 hover:text-white md:hidden"
               onClick={() => setMobileOpen(true)}
             >
               ☰
@@ -201,7 +201,7 @@ export default function AppLayout({ children }) {
               <input
                 type="text"
                 placeholder="Search transactions, categories, loans..."
-                className="w-full h-9 pl-10 pr-4 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-fuchsia-500/50 focus:ring-1 focus:ring-fuchsia-500/50 transition-all"
+                className="w-full h-9 pl-10 pr-4 rounded-lg bg-white bg-opacity-5 border border-white border-opacity-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-fuchsia-500 focus:border-opacity-50 focus:ring-1 focus:ring-fuchsia-500 focus:ring-opacity-50 transition-all"
               />
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -214,14 +214,14 @@ export default function AppLayout({ children }) {
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:bg-opacity-10 hover:text-white"
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
 
             {/* User avatar + name */}
-            <NavLink to="/settings" className="flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white/10">
+            <NavLink to="/settings" className="flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white hover:bg-opacity-10">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-pink-600 text-xs font-bold text-white">
                 {initials}
               </span>

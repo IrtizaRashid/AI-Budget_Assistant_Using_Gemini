@@ -4,8 +4,8 @@ export default function Alert({ type = 'error', children }) {
   if (!children) return null;
 
   const styles = {
-    error: 'bg-red-500/10 text-red-300 border-red-500/30',
-    success: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+    error: 'bg-red-500 bg-opacity-10 text-red-300 border-red-500 border-opacity-30',
+    success: 'bg-emerald-500 bg-opacity-10 text-emerald-300 border-emerald-500 border-opacity-30',
   };
 
   return (

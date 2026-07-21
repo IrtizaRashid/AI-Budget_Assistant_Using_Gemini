@@ -84,7 +84,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Summary Card */}
-      <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+      <div className="mb-6 rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-xl">
             💸
@@ -106,7 +106,7 @@ export default function ExpensesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by description or category…"
-            className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+            className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 py-2 pl-9 pr-3 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
           />
           <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -115,7 +115,7 @@ export default function ExpensesPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 sm:w-56"
+          className="rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-sm text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 sm:w-56"
         >
           <option value="all" className="bg-slate-900">All categories</option>
           {categoryNames.map((name) => (
@@ -125,14 +125,14 @@ export default function ExpensesPage() {
       </div>
 
       {/* Expenses List */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+      <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+        <div className="flex items-center justify-between border-b border-white border-opacity-10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Expense Records</h2>
           <span className="text-xs text-slate-500">{filtered.length} shown</span>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
           </div>
         ) : filtered.length === 0 ? (
           <p className="px-6 py-10 text-center text-slate-500">
@@ -141,7 +141,7 @@ export default function ExpensesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400">
+              <thead className="bg-white bg-opacity-5 text-slate-400">
                 <tr>
                   <th className="px-6 py-3 font-medium">Description</th>
                   <th className="px-6 py-3 font-medium">Category</th>
@@ -150,12 +150,12 @@ export default function ExpensesPage() {
                   <th className="px-6 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white divide-opacity-5">
                 {filtered.map((expense) => (
-                  <tr key={expense.id} className="transition hover:bg-white/5">
+                  <tr key={expense.id} className="transition hover:bg-white hover:bg-opacity-5">
                     <td className="px-6 py-4 font-medium text-slate-200">{expense.description || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className="rounded-full bg-fuchsia-500/15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
+                      <span className="rounded-full bg-fuchsia-500 bg-opacity-15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
                         {expense.category}
                       </span>
                     </td>
@@ -179,7 +179,7 @@ export default function ExpensesPage() {
 
       {/* Category Breakdown */}
       {Object.keys(expensesByCategory).length > 0 && (
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="mt-6 rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <h2 className="mb-4 text-lg font-semibold text-white">Expenses by Category</h2>
           <div className="space-y-3">
             {Object.entries(expensesByCategory).map(([category, categoryExpenses]) => {
@@ -191,7 +191,7 @@ export default function ExpensesPage() {
                     <span className="text-sm font-medium text-slate-300">{category}</span>
                     <span className="text-sm font-semibold text-white">{formatPKR(categoryTotal)}</span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500"
                       style={{ width: `${percentage}%` }}

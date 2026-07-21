@@ -33,10 +33,10 @@ export default function SavingsPage() {
         <h1 className="text-2xl font-bold text-white">Savings</h1>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+      <div className="mb-6 rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
           </div>
         ) : (
           <>
@@ -50,7 +50,7 @@ export default function SavingsPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-cyan-500/15 bg-cyan-500/5 px-4 py-3">
+            <div className="rounded-xl border border-cyan-500 border-opacity-15 bg-cyan-500 bg-opacity-5 px-4 py-3">
               <p className="text-sm text-slate-300">
                 Savings are calculated from your budget and activity. Use the AI Assistant to record income,
                 investments, and transfers.
@@ -60,7 +60,7 @@ export default function SavingsPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+      <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
         <h2 className="mb-4 text-lg font-semibold text-white">Savings Tips</h2>
         <div className="space-y-3">
           {[
@@ -70,7 +70,7 @@ export default function SavingsPage() {
             'Review and adjust your budget regularly to find more savings opportunities',
           ].map((tip) => (
             <div key={tip} className="flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-xs text-emerald-400">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 bg-opacity-20 text-xs text-emerald-400">
                 +
               </span>
               <p className="text-sm text-slate-300">{tip}</p>

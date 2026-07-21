@@ -30,10 +30,10 @@ export default function ApiKeyModal({ open, reason, onSaved, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 backdrop-blur-sm">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#120a20] p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-white border-opacity-10 bg-[#120a20] p-6 shadow-2xl"
       >
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-white">Gemini API Key</h2>
@@ -56,7 +56,7 @@ export default function ApiKeyModal({ open, reason, onSaved, onClose }) {
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           placeholder="Paste Gemini API key"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+          className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
         />
 
         {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
@@ -66,7 +66,7 @@ export default function ApiKeyModal({ open, reason, onSaved, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10"
+              className="rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white hover:bg-opacity-10"
             >
               Later
             </button>

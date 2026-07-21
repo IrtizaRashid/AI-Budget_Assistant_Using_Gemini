@@ -45,7 +45,7 @@ export default function TransactionsPage() {
 
       {/* Summary Cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-xl">
               💰
@@ -56,7 +56,7 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-xl">
               💸
@@ -67,7 +67,7 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-xl">
               🏦
@@ -90,7 +90,7 @@ export default function TransactionsPage() {
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               filter === 'all'
                 ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white'
-                : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                : 'border border-white border-opacity-10 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10'
             }`}
           >
             All
@@ -100,7 +100,7 @@ export default function TransactionsPage() {
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               filter === 'income'
                 ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white'
-                : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                : 'border border-white border-opacity-10 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10'
             }`}
           >
             Income
@@ -110,7 +110,7 @@ export default function TransactionsPage() {
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               filter === 'expense'
                 ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white'
-                : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                : 'border border-white border-opacity-10 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10'
             }`}
           >
             Expenses
@@ -119,20 +119,20 @@ export default function TransactionsPage() {
       </div>
 
       {/* Transactions List */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-        <div className="border-b border-white/10 px-6 py-4">
+      <div className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
+        <div className="border-b border-white border-opacity-10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Transaction History</h2>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
           </div>
         ) : filteredTransactions.length === 0 ? (
           <p className="px-6 py-10 text-center text-slate-500">No transactions found.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400">
+              <thead className="bg-white bg-opacity-5 text-slate-400">
                 <tr>
                   <th className="px-6 py-3 font-medium">Description</th>
                   <th className="px-6 py-3 font-medium">Category</th>
@@ -141,20 +141,20 @@ export default function TransactionsPage() {
                   <th className="px-6 py-3 text-right font-medium">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white divide-opacity-5">
                 {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="transition hover:bg-white/5">
+                  <tr key={transaction.id} className="transition hover:bg-white hover:bg-opacity-5">
                     <td className="px-6 py-4 font-medium text-slate-200">{transaction.description || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className="rounded-full bg-fuchsia-500/15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
+                      <span className="rounded-full bg-fuchsia-500 bg-opacity-15 px-2.5 py-1 text-xs font-medium text-fuchsia-300">
                         {transaction.category || '—'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                         transaction.type === 'income' 
-                          ? 'bg-emerald-500/15 text-emerald-400' 
-                          : 'bg-pink-500/15 text-pink-400'
+                          ? 'bg-emerald-500 bg-opacity-15 text-emerald-400' 
+                          : 'bg-pink-500 bg-opacity-15 text-pink-400'
                       }`}>
                         {transaction.type}
                       </span>

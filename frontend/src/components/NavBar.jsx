@@ -18,7 +18,7 @@ export default function NavBar() {
       <div className="flex items-center justify-between gap-4">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-xl shadow-lg shadow-fuchsia-500/40">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-xl shadow-lg shadow-[rgba(217,70,239,0.4)]">
             💸
           </span>
           <div>
@@ -39,8 +39,8 @@ export default function NavBar() {
                 to={to}
                 className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                   active
-                    ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow shadow-fuchsia-500/30'
-                    : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow shadow-[rgba(217,70,239,0.3)]'
+                    : 'border border-white border-opacity-10 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10 hover:text-white'
                 }`}
               >
                 <span>{icon}</span>
@@ -51,7 +51,7 @@ export default function NavBar() {
 
           <button
             onClick={handleLogout}
-            className="ml-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+            className="ml-2 rounded-xl border border-white border-opacity-10 bg-white bg-opacity-5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-red-500 hover:border-opacity-40 hover:bg-red-500 hover:bg-opacity-10 hover:text-red-300"
           >
             Logout
           </button>

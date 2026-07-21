@@ -125,7 +125,7 @@ export default function UploadPage() {
         </div>
 
         {/* Main card */}
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+        <div className="bg-white bg-opacity-70 backdrop-blur-md rounded-2xl shadow-lg border border-white border-opacity-50 overflow-hidden">
           <div className="p-8 sm:p-10">
             {/* Image upload section */}
             <div className="mb-10">
@@ -141,8 +141,8 @@ export default function UploadPage() {
                   onDrop={handleDrop}
                   className={`relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${
                     dragActive
-                      ? 'border-amber-500 bg-amber-50/50'
-                      : 'border-neutral-300 bg-neutral-50/50 hover:border-amber-400 hover:bg-amber-50/30'
+                      ? 'border-amber-500 bg-amber-50 bg-opacity-50'
+                      : 'border-neutral-300 bg-neutral-50 bg-opacity-50 hover:border-amber-400 hover:bg-amber-50 hover:bg-opacity-30'
                   }`}
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -189,7 +189,7 @@ export default function UploadPage() {
                       setImage(null);
                       setImagePreview(null);
                     }}
-                    className="absolute top-4 right-4 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 transition-colors"
+                    className="absolute top-4 right-4 bg-red-500 bg-opacity-90 hover:bg-red-600 text-white rounded-full p-2 transition-colors"
                   >
                     <svg
                       className="w-5 h-5"
@@ -220,12 +220,12 @@ export default function UploadPage() {
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
                     placeholder="Enter height"
-                    className="flex-1 px-4 py-3 rounded-lg border border-neutral-300 bg-white/60 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="flex-1 px-4 py-3 rounded-lg border border-neutral-300 bg-white bg-opacity-60 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                   />
                   <select
                     value={heightUnit}
                     onChange={(e) => setHeightUnit(e.target.value)}
-                    className="px-4 py-3 rounded-lg border border-neutral-300 bg-white/60 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all cursor-pointer"
+                    className="px-4 py-3 rounded-lg border border-neutral-300 bg-white bg-opacity-60 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all cursor-pointer"
                   >
                     <option value="cm">cm</option>
                     <option value="ft">ft</option>
@@ -244,12 +244,12 @@ export default function UploadPage() {
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder="Enter weight"
-                    className="flex-1 px-4 py-3 rounded-lg border border-neutral-300 bg-white/60 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="flex-1 px-4 py-3 rounded-lg border border-neutral-300 bg-white bg-opacity-60 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                   />
                   <select
                     value={weightUnit}
                     onChange={(e) => setWeightUnit(e.target.value)}
-                    className="px-4 py-3 rounded-lg border border-neutral-300 bg-white/60 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all cursor-pointer"
+                    className="px-4 py-3 rounded-lg border border-neutral-300 bg-white bg-opacity-60 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all cursor-pointer"
                   >
                     <option value="kg">kg</option>
                     <option value="lb">lb</option>
@@ -295,7 +295,7 @@ export default function UploadPage() {
         {/* Result card */}
         {result && (
           <div className="mt-8 animate-fade-in-up">
-            <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/50 p-8 sm:p-10">
+            <div className="bg-white bg-opacity-70 backdrop-blur-md rounded-2xl shadow-lg border border-white border-opacity-50 p-8 sm:p-10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-3 h-3 rounded-full bg-gradient-to-r from-amber-500 to-orange-500" />
                 <h2 className="text-2xl font-serif font-light text-neutral-800">

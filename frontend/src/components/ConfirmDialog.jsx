@@ -22,8 +22,8 @@ export default function ConfirmDialog({
 
   return (
     // Backdrop
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#15101f] p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-white border-opacity-10 bg-[#15101f] p-6 shadow-2xl">
         <h3 className="text-lg font-semibold text-white">{title}</h3>
         {message && <p className="mt-2 text-sm text-slate-400">{message}</p>}
 
@@ -31,7 +31,7 @@ export default function ConfirmDialog({
           <button
             onClick={onCancel}
             disabled={loading}
-            className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 disabled:opacity-60"
+            className="rounded-lg border border-white border-opacity-15 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white hover:bg-opacity-10 disabled:opacity-60"
           >
             Cancel
           </button>

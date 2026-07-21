@@ -96,7 +96,7 @@ export default function VoiceInput({ onResult, onError, disabled }) {
     <div className="relative">
       {/* Floating "Listening…" indicator above the button */}
       {listening && (
-        <div className="absolute -top-9 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-300 ring-1 ring-red-500/40">
+        <div className="absolute -top-9 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-red-500 bg-opacity-20 px-3 py-1 text-xs font-medium text-red-300 ring-1 ring-red-500 ring-opacity-40">
           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
           Listening…
         </div>
@@ -110,13 +110,13 @@ export default function VoiceInput({ onResult, onError, disabled }) {
         aria-label="Voice input"
         className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-40 ${
           listening
-            ? 'bg-red-500/20 text-red-400 ring-2 ring-red-500/50'
-            : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+            ? 'bg-red-500 bg-opacity-20 text-red-400 ring-2 ring-red-500 ring-opacity-50'
+            : 'border border-white border-opacity-10 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10'
         }`}
       >
         {/* Pulsing ring while listening */}
         {listening && (
-          <span className="absolute inset-0 animate-ping rounded-xl bg-red-500/20" />
+          <span className="absolute inset-0 animate-ping rounded-xl bg-red-500 bg-opacity-20" />
         )}
 
         {/* Microphone icon */}

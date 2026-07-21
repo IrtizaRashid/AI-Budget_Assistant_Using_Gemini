@@ -17,7 +17,7 @@ export default function SummaryCard({
   subtitle = null,
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-fuchsia-500/40 hover:shadow-[0_0_30px_-5px_rgba(217,70,239,0.4)]">
+    <div className="group relative overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-fuchsia-500 hover:border-opacity-40 hover:shadow-[0_0_30px_-5px_rgba(217,70,239,0.4)]">
       {/* Neon glow that intensifies on hover */}
       <div
         className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-50`}

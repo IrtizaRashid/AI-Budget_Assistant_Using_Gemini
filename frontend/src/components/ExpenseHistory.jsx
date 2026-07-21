@@ -51,22 +51,22 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] backdrop-blur-sm">
       {/* Header + search */}
-      <div className="flex flex-col gap-3 border-b border-white/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-white border-opacity-10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-white">Expense History</h2>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by category, description, date, amount…"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 sm:w-80"
+          className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 sm:w-80"
         />
       </div>
 
       {/* Success / error banner */}
       {message && (
-        <div className="border-b border-white/10 bg-emerald-500/10 px-6 py-2 text-sm text-emerald-300">
+        <div className="border-b border-white border-opacity-10 bg-emerald-500 bg-opacity-10 px-6 py-2 text-sm text-emerald-300">
           {message}
         </div>
       )}
@@ -83,9 +83,9 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
               <th className="px-4 py-2.5 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-white divide-opacity-5">
             {filtered.map((e) => (
-              <tr key={e.id} className="transition hover:bg-white/5">
+              <tr key={e.id} className="transition hover:bg-white hover:bg-opacity-5">
                 <td className="px-4 py-2.5 text-xs text-slate-400 whitespace-nowrap">
                   {formatDateCompact(e.expense_date)}
                 </td>
@@ -93,7 +93,7 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
                   {e.description || '—'}
                 </td>
                 <td className="px-4 py-2.5">
-                  <span className="rounded-full bg-fuchsia-500/15 px-2.5 py-0.5 text-xs font-medium text-fuchsia-300">
+                  <span className="rounded-full bg-fuchsia-500 bg-opacity-15 px-2.5 py-0.5 text-xs font-medium text-fuchsia-300">
                     {e.category}
                   </span>
                 </td>
@@ -103,7 +103,7 @@ export default function ExpenseHistory({ expenses = [], onChanged }) {
                 <td className="px-4 py-2.5 text-right">
                   <button
                     onClick={() => setPendingDelete(e)}
-                    className="rounded-lg px-3 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                    className="rounded-lg px-3 py-1 text-xs font-semibold text-red-400 transition hover:bg-red-500 hover:bg-opacity-10"
                   >
                     Delete
                   </button>

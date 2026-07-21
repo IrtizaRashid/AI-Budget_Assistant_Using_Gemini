@@ -13,16 +13,16 @@ export default function BudgetTable({ rows, onAmountChange, total, budget }) {
 
   return (
     <div>
-      <div className="overflow-hidden rounded-xl border border-white/10">
+      <div className="overflow-hidden rounded-xl border border-white border-opacity-10">
         <table className="w-full text-left text-sm">
-          <thead className="bg-white/5 text-slate-300">
+          <thead className="bg-white bg-opacity-5 text-slate-300">
             <tr>
               <th className="px-4 py-3 font-semibold">Category</th>
               <th className="px-4 py-3 font-semibold">Percentage</th>
               <th className="px-4 py-3 font-semibold">Amount (PKR)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-white divide-opacity-5">
             {rows.map((row, index) => (
               <tr key={row.category}>
                 <td className="px-4 py-3 font-medium text-slate-200">
@@ -35,7 +35,7 @@ export default function BudgetTable({ rows, onAmountChange, total, budget }) {
                     min="0"
                     value={row.amount}
                     onChange={(e) => onAmountChange(index, e.target.value)}
-                    className="w-32 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                    className="w-32 rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-1.5 text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
                   />
                 </td>
               </tr>
@@ -43,7 +43,7 @@ export default function BudgetTable({ rows, onAmountChange, total, budget }) {
           </tbody>
           {/* Running total row — turns green when it matches the budget */}
           <tfoot>
-            <tr className="bg-white/5 font-semibold text-slate-200">
+            <tr className="bg-white bg-opacity-5 font-semibold text-slate-200">
               <td className="px-4 py-3" colSpan={2}>
                 Total
               </td>

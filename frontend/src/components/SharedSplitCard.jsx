@@ -63,7 +63,7 @@ export default function SharedSplitCard({ expense, userId, onSaved, onCancelled 
   return (
     <div className="space-y-3 text-sm">
       {/* Summary */}
-      <div className="rounded-lg bg-white/5 p-3 space-y-1">
+      <div className="rounded-lg bg-white bg-opacity-5 p-3 space-y-1">
         <div className="flex justify-between">
           <span className="text-slate-400">Total Bill</span>
           <span className="font-semibold text-white">{formatPKR(total)}</span>
@@ -96,8 +96,8 @@ export default function SharedSplitCard({ expense, userId, onSaved, onCancelled 
             onClick={() => setMode(key)}
             className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
               mode === key
-                ? 'border-fuchsia-500 bg-fuchsia-500/20 text-fuchsia-300'
-                : 'border-white/15 bg-white/5 text-slate-300 hover:bg-white/10'
+                ? 'border-fuchsia-500 bg-fuchsia-500 bg-opacity-20 text-fuchsia-300'
+                : 'border-white border-opacity-15 bg-white bg-opacity-5 text-slate-300 hover:bg-white hover:bg-opacity-10'
             }`}
           >
             {label}
@@ -119,11 +119,11 @@ export default function SharedSplitCard({ expense, userId, onSaved, onCancelled 
                 onChange={(e) =>
                   setCustomAmounts((prev) => ({ ...prev, [person]: e.target.value }))
                 }
-                className="w-28 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-right text-xs text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                className="w-28 rounded-md border border-white border-opacity-15 bg-white bg-opacity-5 px-2 py-1 text-right text-xs text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
               />
             </div>
           ))}
-          <div className="flex justify-between rounded-md bg-white/5 px-2 py-1 text-xs">
+          <div className="flex justify-between rounded-md bg-white bg-opacity-5 px-2 py-1 text-xs">
             <span className="text-slate-400">Your share</span>
             <span className={myCustomShare < 0 ? 'text-red-300' : 'text-fuchsia-300 font-semibold'}>
               {formatPKR(Math.max(0, myCustomShare))}
@@ -145,7 +145,7 @@ export default function SharedSplitCard({ expense, userId, onSaved, onCancelled 
         <button
           onClick={onCancelled}
           disabled={busy}
-          className="flex-1 rounded-lg border border-white/20 py-2 px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
+          className="flex-1 rounded-lg border border-white border-opacity-20 py-2 px-3 text-xs font-semibold text-slate-300 transition hover:bg-white hover:bg-opacity-10 disabled:opacity-50"
         >
           Cancel
         </button>

@@ -25,7 +25,7 @@ function SpendingBar({ category, spent, allocated, color }) {
           {formatPKR(spent)} / {formatPKR(allocated)}
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
         <div
           className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-red-500' : ''}`}
           style={{
@@ -166,8 +166,8 @@ export default function Dashboard() {
   return (
     <div className="relative min-h-screen bg-[#0b0712]">
       {/* Ambient background blobs */}
-      <div className="pointer-events-none fixed -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-fuchsia-600/20 blur-[140px]" />
-      <div className="pointer-events-none fixed right-0 top-40 h-[400px] w-[400px] rounded-full bg-purple-600/20 blur-[140px]" />
+      <div className="pointer-events-none fixed -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-fuchsia-600 bg-opacity-20 blur-[140px]" />
+      <div className="pointer-events-none fixed right-0 top-40 h-[400px] w-[400px] rounded-full bg-purple-600 bg-opacity-20 blur-[140px]" />
 
       {/* Warning toasts */}
       <div className="fixed right-4 top-4 z-50 w-80 max-w-[90vw] space-y-2">
@@ -185,7 +185,7 @@ export default function Dashboard() {
 
         {/* ── Page header ── */}
         <div className="mb-8">
-          <p className="text-sm font-medium text-fuchsia-400/80 uppercase tracking-widest mb-1">
+          <p className="text-sm font-medium text-fuchsia-400 text-opacity-80 uppercase tracking-widest mb-1">
             Overview
           </p>
           <h1 className="text-3xl font-bold text-white">
@@ -198,15 +198,15 @@ export default function Dashboard() {
 
         {/* ── Loading ── */}
         {loading && (
-          <div className="flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] py-24 backdrop-blur-sm">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-fuchsia-500" />
+          <div className="flex items-center justify-center rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] py-24 backdrop-blur-sm">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-opacity-10 border-t-fuchsia-500" />
             <span className="ml-3 text-slate-400 text-sm">Loading your dashboard…</span>
           </div>
         )}
 
         {/* ── Error ── */}
         {!loading && error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center backdrop-blur-sm">
+          <div className="rounded-2xl border border-red-500 border-opacity-30 bg-red-500 bg-opacity-10 p-8 text-center backdrop-blur-sm">
             <p className="text-red-300 mb-4">{error}</p>
             <button
               onClick={loadData}
@@ -261,12 +261,12 @@ export default function Dashboard() {
             </section>
 
             {/* ── Budget utilization bar ── */}
-            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm animate-fade-in-up">
+            <section className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.03)] p-5 backdrop-blur-sm animate-fade-in-up">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-white">Monthly Budget Utilization</span>
                 <span className="text-sm font-bold tabular-nums text-fuchsia-400">{budgetUsedPct}%</span>
               </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-3 w-full overflow-hidden rounded-full bg-white bg-opacity-10">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${
                     budgetUsedPct >= 100
@@ -292,7 +292,7 @@ export default function Dashboard() {
                   <button
                     key={action.to}
                     onClick={() => navigate(action.to)}
-                    className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-center backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-fuchsia-500/40 hover:shadow-[0_0_24px_-4px_rgba(217,70,239,0.5)]"
+                    className="group relative overflow-hidden rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-4 text-center backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-fuchsia-500 hover:border-opacity-40 hover:shadow-[0_0_24px_-4px_rgba(217,70,239,0.5)]"
                   >
                     <div className={`pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-gradient-to-br ${action.color} opacity-20 blur-2xl transition-opacity group-hover:opacity-60`} />
                     <div className="relative flex flex-col items-center gap-2">
@@ -314,7 +314,7 @@ export default function Dashboard() {
 
                 {/* Category spending progress */}
                 {catRows.length > 0 && (
-                  <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm animate-fade-in-up">
+                  <section className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.03)] p-6 backdrop-blur-sm animate-fade-in-up">
                     <div className="mb-5 flex items-center justify-between">
                       <div>
                         <h2 className="text-base font-semibold text-white">Spending by Category</h2>
@@ -336,7 +336,7 @@ export default function Dashboard() {
                 )}
 
                 {/* Recent transactions */}
-                <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm animate-fade-in-up">
+                <section className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.03)] p-6 backdrop-blur-sm animate-fade-in-up">
                   <div className="mb-5 flex items-center justify-between">
                     <div>
                       <h2 className="text-base font-semibold text-white">Recent Transactions</h2>
@@ -362,14 +362,14 @@ export default function Dashboard() {
                       </button>
                     </div>
                   ) : (
-                    <ul className="divide-y divide-white/[0.05]">
+                    <ul className="divide-y divide-[rgba(255,255,255,0.05)]">
                       {recentExpenses.map((exp, i) => (
                         <li
                           key={exp.id ?? i}
                           className="flex items-center justify-between py-3 group"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-base">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white bg-opacity-5 text-base">
                               💸
                             </div>
                             <div className="min-w-0">
@@ -396,7 +396,7 @@ export default function Dashboard() {
               <div className="space-y-8">
 
                 {/* AI Insights */}
-                <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm animate-fade-in-up">
+                <section className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.03)] p-6 backdrop-blur-sm animate-fade-in-up">
                   <div className="mb-5 flex items-center justify-between">
                     <div>
                       <h2 className="text-base font-semibold text-white">AI Insights</h2>
@@ -420,7 +420,7 @@ export default function Dashboard() {
                   ) : recLoading ? (
                     <div className="space-y-3">
                       {[1, 2, 3].map((n) => (
-                        <div key={n} className="h-14 animate-pulse rounded-xl bg-white/5" />
+                        <div key={n} className="h-14 animate-pulse rounded-xl bg-white bg-opacity-5" />
                       ))}
                     </div>
                   ) : recommendations.length === 0 ? (
@@ -433,7 +433,7 @@ export default function Dashboard() {
                       {recommendations.slice(0, 3).map((rec, i) => (
                         <li
                           key={i}
-                          className="group flex gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-3 transition hover:border-fuchsia-500/20 hover:bg-fuchsia-500/5"
+                          className="group flex gap-3 rounded-xl border border-white border-opacity-5 bg-[rgba(255,255,255,0.03)] p-3 transition hover:border-fuchsia-500 hover:border-opacity-20 hover:bg-fuchsia-500 hover:bg-opacity-5"
                         >
                           <span className="shrink-0 text-base mt-0.5">
                             {i === 0 ? '💡' : i === 1 ? '📉' : '🎯'}
@@ -447,7 +447,7 @@ export default function Dashboard() {
                   {recommendations.length > 3 && (
                     <button
                       onClick={() => navigate('/ai')}
-                      className="mt-4 w-full rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/5 py-2 text-xs font-medium text-fuchsia-400 transition hover:bg-fuchsia-500/10"
+                      className="mt-4 w-full rounded-xl border border-fuchsia-500 border-opacity-20 bg-fuchsia-500 bg-opacity-5 py-2 text-xs font-medium text-fuchsia-400 transition hover:bg-fuchsia-500 hover:bg-opacity-10"
                     >
                       See {recommendations.length - 3} more insights
                     </button>
@@ -455,18 +455,18 @@ export default function Dashboard() {
                 </section>
 
                 {/* Quick stats: Loans & Investments overview */}
-                <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm animate-fade-in-up">
+                <section className="rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.03)] p-6 backdrop-blur-sm animate-fade-in-up">
                   <h2 className="mb-4 text-base font-semibold text-white">Financial Overview</h2>
                   <div className="space-y-3">
 
                     {/* Owed to me */}
                     <button
                       onClick={() => navigate('/loans')}
-                      className="group w-full flex items-center justify-between rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-4 py-3 text-left transition hover:border-emerald-500/30 hover:bg-emerald-500/10"
+                      className="group w-full flex items-center justify-between rounded-xl border border-emerald-500 border-opacity-15 bg-emerald-500 bg-opacity-5 px-4 py-3 text-left transition hover:border-emerald-500 hover:border-opacity-30 hover:bg-emerald-500 hover:bg-opacity-10"
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-sm">💰</span>
-                        <span className="text-xs font-medium text-emerald-300/80">Owed to me</span>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 bg-opacity-15 text-sm">💰</span>
+                        <span className="text-xs font-medium text-emerald-300 text-opacity-80">Owed to me</span>
                       </div>
                       <span className="text-sm font-bold text-emerald-300 tabular-nums">
                         {formatPKR(summary.owedToMe ?? 0)}
@@ -476,11 +476,11 @@ export default function Dashboard() {
                     {/* I owe */}
                     <button
                       onClick={() => navigate('/loans')}
-                      className="group w-full flex items-center justify-between rounded-xl border border-red-500/15 bg-red-500/5 px-4 py-3 text-left transition hover:border-red-500/30 hover:bg-red-500/10"
+                      className="group w-full flex items-center justify-between rounded-xl border border-red-500 border-opacity-15 bg-red-500 bg-opacity-5 px-4 py-3 text-left transition hover:border-red-500 hover:border-opacity-30 hover:bg-red-500 hover:bg-opacity-10"
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/15 text-sm">💸</span>
-                        <span className="text-xs font-medium text-red-300/80">I owe</span>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500 bg-opacity-15 text-sm">💸</span>
+                        <span className="text-xs font-medium text-red-300 text-opacity-80">I owe</span>
                       </div>
                       <span className="text-sm font-bold text-red-300 tabular-nums">
                         {formatPKR(summary.iOwe ?? 0)}
@@ -490,11 +490,11 @@ export default function Dashboard() {
                     {/* Investments */}
                     <button
                       onClick={() => navigate('/investments')}
-                      className="group w-full flex items-center justify-between rounded-xl border border-cyan-500/15 bg-cyan-500/5 px-4 py-3 text-left transition hover:border-cyan-500/30 hover:bg-cyan-500/10"
+                      className="group w-full flex items-center justify-between rounded-xl border border-cyan-500 border-opacity-15 bg-cyan-500 bg-opacity-5 px-4 py-3 text-left transition hover:border-cyan-500 hover:border-opacity-30 hover:bg-cyan-500 hover:bg-opacity-10"
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15 text-sm">📈</span>
-                        <span className="text-xs font-medium text-cyan-300/80">Investments</span>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500 bg-opacity-15 text-sm">📈</span>
+                        <span className="text-xs font-medium text-cyan-300 text-opacity-80">Investments</span>
                       </div>
                       <span className="text-xs font-medium text-cyan-400 group-hover:text-cyan-300 transition">
                         View →
@@ -504,11 +504,11 @@ export default function Dashboard() {
                     {/* Analytics */}
                     <button
                       onClick={() => navigate('/analytics')}
-                      className="group w-full flex items-center justify-between rounded-xl border border-purple-500/15 bg-purple-500/5 px-4 py-3 text-left transition hover:border-purple-500/30 hover:bg-purple-500/10"
+                      className="group w-full flex items-center justify-between rounded-xl border border-purple-500 border-opacity-15 bg-purple-500 bg-opacity-5 px-4 py-3 text-left transition hover:border-purple-500 hover:border-opacity-30 hover:bg-purple-500 hover:bg-opacity-10"
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-sm">📊</span>
-                        <span className="text-xs font-medium text-purple-300/80">Analytics & Charts</span>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500 bg-opacity-15 text-sm">📊</span>
+                        <span className="text-xs font-medium text-purple-300 text-opacity-80">Analytics & Charts</span>
                       </div>
                       <span className="text-xs font-medium text-purple-400 group-hover:text-purple-300 transition">
                         View →

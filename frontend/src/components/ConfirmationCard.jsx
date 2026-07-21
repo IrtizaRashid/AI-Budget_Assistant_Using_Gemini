@@ -116,7 +116,7 @@ export default function ConfirmationCard({
             <button
               onClick={() => resolve('cancel')}
               disabled={busy}
-              className={`${btn} border border-white/20 text-slate-300 hover:bg-white/10`}
+              className={`${btn} border border-white border-opacity-20 text-slate-300 hover:bg-white hover:bg-opacity-10`}
             >
               Cancel
             </button>
@@ -139,7 +139,7 @@ export default function ConfirmationCard({
                 key={c.category}
                 onClick={() => resolve('transfer', c.category)}
                 disabled={busy}
-                className={`${btn} border border-white/20 text-left text-slate-200 hover:bg-white/10`}
+                className={`${btn} border border-white border-opacity-20 text-left text-slate-200 hover:bg-white hover:bg-opacity-10`}
               >
                 {c.category}{' '}
                 <span className="text-slate-400">
@@ -151,7 +151,7 @@ export default function ConfirmationCard({
           <button
             onClick={() => setStep('options')}
             disabled={busy}
-            className={`${btn} text-slate-400 hover:bg-white/10`}
+            className={`${btn} text-slate-400 hover:bg-white hover:bg-opacity-10`}
           >
             ← Back
           </button>

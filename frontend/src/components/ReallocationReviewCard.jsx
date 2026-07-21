@@ -76,7 +76,7 @@ export default function ReallocationReviewCard({ reallocation, onSaved, onCancel
   return (
     <div className="space-y-3 text-sm">
       {/* Income summary */}
-      <div className="rounded-lg bg-white/5 p-3 space-y-1">
+      <div className="rounded-lg bg-white bg-opacity-5 p-3 space-y-1">
         <div className="flex justify-between">
           <span className="text-slate-400">Previous Budget</span>
           <span className="text-white">{formatPKR(reallocation.currentIncome)}</span>
@@ -85,7 +85,7 @@ export default function ReallocationReviewCard({ reallocation, onSaved, onCancel
           <span className="text-green-400">Income Added</span>
           <span className="text-green-300">+{formatPKR(reallocation.addedIncome)}</span>
         </div>
-        <div className="flex justify-between font-semibold border-t border-white/10 pt-1">
+        <div className="flex justify-between font-semibold border-t border-white border-opacity-10 pt-1">
           <span className="text-slate-300">New Total</span>
           <span className="text-fuchsia-300">{formatPKR(total)}</span>
         </div>
@@ -105,7 +105,7 @@ export default function ReallocationReviewCard({ reallocation, onSaved, onCancel
               step="any"
               value={row.editAmount}
               onChange={(e) => handleChange(idx, e.target.value)}
-              className="w-28 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-right text-xs text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+              className="w-28 rounded-md border border-white border-opacity-15 bg-white bg-opacity-5 px-2 py-1 text-right text-xs text-white focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
             />
           </div>
         ))}
@@ -114,7 +114,7 @@ export default function ReallocationReviewCard({ reallocation, onSaved, onCancel
       {/* Running total / balance indicator */}
       <div
         className={`flex justify-between rounded px-2 py-1 text-xs font-semibold ${
-          balanced ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300'
+          balanced ? 'bg-green-500 bg-opacity-10 text-green-300' : 'bg-red-500 bg-opacity-10 text-red-300'
         }`}
       >
         <span>Allocated</span>
@@ -141,7 +141,7 @@ export default function ReallocationReviewCard({ reallocation, onSaved, onCancel
         <button
           onClick={onCancelled}
           disabled={busy}
-          className="flex-1 rounded-lg border border-white/20 py-2 px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
+          className="flex-1 rounded-lg border border-white border-opacity-20 py-2 px-3 text-xs font-semibold text-slate-300 transition hover:bg-white hover:bg-opacity-10 disabled:opacity-50"
         >
           Cancel
         </button>

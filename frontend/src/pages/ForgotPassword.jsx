@@ -87,12 +87,12 @@ export default function ForgotPassword() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0712] px-4 py-10">
-      <div className="pointer-events-none absolute -left-24 top-0 h-96 w-96 rounded-full bg-fuchsia-600/25 blur-[120px] animate-blob" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-purple-600/25 blur-[120px] animate-blob delay-200" />
+      <div className="pointer-events-none absolute -left-24 top-0 h-96 w-96 rounded-full bg-fuchsia-600 bg-opacity-25 blur-[120px] animate-blob" />
+      <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-purple-600 bg-opacity-25 blur-[120px] animate-blob delay-200" />
 
-      <div className="relative w-full max-w-md animate-fade-in-up rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
+      <div className="relative w-full max-w-md animate-fade-in-up rounded-3xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-8 shadow-2xl backdrop-blur-xl">
         <div className="mb-3 flex justify-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-2xl shadow-lg shadow-fuchsia-500/40">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-2xl shadow-lg shadow-[rgba(217,70,239,0.4)]">
             AI
           </span>
         </div>
@@ -118,7 +118,7 @@ export default function ForgotPassword() {
               autoComplete="email"
               disabled={showResetForm}
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-70"
+              className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500 disabled:opacity-70"
             />
           </div>
 
@@ -133,7 +133,7 @@ export default function ForgotPassword() {
                   inputMode="numeric"
                   maxLength={OTP_LENGTH}
                   placeholder="12345678"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center text-lg font-bold tracking-widest text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                  className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-center text-lg font-bold tracking-widest text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
                 />
               </div>
 
@@ -146,7 +146,7 @@ export default function ForgotPassword() {
                   onChange={handlePasswordChange}
                   autoComplete="new-password"
                   placeholder="At least 6 characters"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                  className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
                 />
               </div>
 
@@ -159,7 +159,7 @@ export default function ForgotPassword() {
                   onChange={handlePasswordChange}
                   autoComplete="new-password"
                   placeholder="Repeat your password"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                  className="w-full rounded-lg border border-white border-opacity-10 bg-white bg-opacity-5 px-3 py-2 text-white placeholder-slate-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
                 />
               </div>
             </>
@@ -168,7 +168,7 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-3 font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 px-4 py-3 font-semibold text-white shadow-lg shadow-[rgba(217,70,239,0.3)] transition hover:from-fuchsia-500 hover:to-pink-500 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? 'Please wait...' : showResetForm ? 'Update Password' : 'Send Reset Code'}
           </button>
