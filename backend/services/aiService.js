@@ -2,6 +2,48 @@
 import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/env.js';
 
+// ─── Circular Queue for API Key Rotation ─────────────────────────────────────
+
+class ApiKeyQueue {
+  constructor() {
+    this.keys = [];
+    this.currentIndex = 0;
+    this.initializeKeys();
+  }
+
+  initializeKeys() {
+    // Combine all API keys from all providers into a single circular queue
+    const geminiKeys = config.gemini.apiKeys.map(key => ({ key, provider: 'Gemini', model: config.gemini.model }));
+    const groqKeys = config.groq.apiKeys.map(key => ({ key, provider: 'Groq', model: config.groq.model }));
+    const openRouterKeys = config.openRouter.apiKeys.map(key => ({ key, provider: 'OpenRouter', model: config.openRouter.model }));
+    
+    this.keys = [...geminiKeys, ...groqKeys, ...openRouterKeys];
+    this.currentIndex = 0;
+  }
+
+  getNext() {
+    if (this.keys.length === 0) return null;
+    
+    const keyEntry = this.keys[this.currentIndex];
+    this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+    return keyEntry;
+  }
+
+  hasNext() {
+    return this.keys.length > 0;
+  }
+
+  reset() {
+    this.currentIndex = 0;
+  }
+
+  size() {
+    return this.keys.length;
+  }
+}
+
+const apiKeyQueue = new ApiKeyQueue();
+
 const repairJSON = (raw) => {
   let s = raw.trim();
   s = s.replace(/,\s*$/, '');
@@ -72,224 +114,188 @@ const classifyProviderError = (provider, msg) => {
   return null;
 };
 
-const groqFetch = async (systemPrompt, userContent, { temperature, json }) => {
-  const MAX_ATTEMPTS = 3;
-  let lastKeyError = null;
-
-  for (const key of config.groq.apiKeys) {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
-      try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${key}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: config.groq.model,
-            messages: [
-              {
-                role: 'system',
-                content: json ? `${systemPrompt}\n\nReturn only valid JSON. Do not wrap it in markdown.` : systemPrompt,
-              },
-              { role: 'user', content: userContent },
-            ],
-            temperature,
-            stream: false,
-          }),
-        });
-
-        const data = await response.json().catch(() => ({}));
-        clearTimeout(timer);
-
-        if (!response.ok) {
-          const message = data.error?.message || data.message || data.error || `HTTP ${response.status}`;
-          const classified = classifyProviderError('Groq', `${response.status} ${message}`);
-          if (classified?.code === 'GEMINI_QUOTA' || classified?.code === 'GEMINI_KEY_INVALID') {
-            lastKeyError = classified;
-            break;
-          }
-          if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
-            await sleep(700 * attempt);
-            continue;
-          }
-          if (classified) {
-            lastKeyError = classified;
-            break;
-          }
-          throw new Error(`Groq error: ${message}`);
-        }
-
-        return data.choices?.[0]?.message?.content || '';
-      } catch (err) {
-        clearTimeout(timer);
-        const msg = String(err?.message || err);
-        const classified = classifyProviderError('Groq', msg);
-        if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
-          await sleep(700 * attempt);
-          continue;
-        }
-        if (classified) {
-          lastKeyError = classified;
-          break;
-        }
-        throw new Error(`Groq error: ${msg}`);
-      }
-    }
-  }
-
-  throw lastKeyError || providerError('Groq', 'GEMINI_UNAVAILABLE', 'Groq is unavailable.');
-};
-
-const openRouterFetch = async (systemPrompt, userContent, { temperature, json }) => {
-  const MAX_ATTEMPTS = 3;
-  let lastKeyError = null;
-
-  for (const key of config.openRouter.apiKeys) {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${key}`,
-            'Content-Type': 'application/json',
-            ...(config.openRouter.referer ? { 'HTTP-Referer': config.openRouter.referer } : {}),
-            ...(config.openRouter.title ? { 'X-OpenRouter-Title': config.openRouter.title } : {}),
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: config.openRouter.model,
-            messages: [
-              {
-                role: 'system',
-                content: json ? `${systemPrompt}\n\nReturn only valid JSON. Do not wrap it in markdown.` : systemPrompt,
-              },
-              { role: 'user', content: userContent },
-            ],
-            temperature,
-            stream: false,
-          }),
-        });
-
-        const data = await response.json().catch(() => ({}));
-        clearTimeout(timer);
-
-        if (!response.ok) {
-          const message = data.error?.message || data.message || data.error || `HTTP ${response.status}`;
-          const classified = classifyProviderError('OpenRouter', `${response.status} ${message}`);
-          if (classified?.code === 'GEMINI_QUOTA' || classified?.code === 'GEMINI_KEY_INVALID') {
-            lastKeyError = classified;
-            break;
-          }
-          if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
-            await sleep(700 * attempt);
-            continue;
-          }
-          if (classified) {
-            lastKeyError = classified;
-            break;
-          }
-          throw new Error(`OpenRouter error: ${message}`);
-        }
-
-        return data.choices?.[0]?.message?.content || '';
-      } catch (err) {
-        clearTimeout(timer);
-        const msg = String(err?.message || err);
-        const classified = classifyProviderError('OpenRouter', msg);
-        if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
-          await sleep(700 * attempt);
-          continue;
-        }
-        if (classified) {
-          lastKeyError = classified;
-          break;
-        }
-        throw new Error(`OpenRouter error: ${msg}`);
-      }
-    }
-  }
-
-  throw lastKeyError || providerError('OpenRouter', 'GEMINI_UNAVAILABLE', 'OpenRouter is unavailable.');
-};
-
 const geminiFetch = async (systemPrompt, userContent, { temperature, json, apiKey }) => {
-  const apiKeys = getApiKeyCandidates(apiKey);
-  if (apiKeys.length === 0 && config.groq.apiKeys.length === 0 && config.openRouter.apiKeys.length === 0) {
+  // If user provided their own API key, try it first
+  if (apiKey) {
+    try {
+      const result = await tryGeminiKey(apiKey, systemPrompt, userContent, { temperature, json });
+      return result;
+    } catch (err) {
+      // User's key failed, fall back to circular queue
+      console.log('User API key failed, falling back to server keys');
+    }
+  }
+
+  // Check if we have any server keys configured
+  if (!apiKeyQueue.hasNext()) {
     throw makeGeminiError('GEMINI_KEY_MISSING', 'No AI API keys are configured on the server.');
   }
 
   const MAX_ATTEMPTS = 3;
   let lastKeyError = null;
+  const queueSize = apiKeyQueue.size();
+  const triedKeys = new Set();
 
-  for (const key of apiKeys) {
-    const ai = getClient(key);
+  // Try each key in the circular queue
+  for (let i = 0; i < queueSize; i++) {
+    const keyEntry = apiKeyQueue.getNext();
+    if (!keyEntry || triedKeys.has(keyEntry.key)) continue;
+    
+    triedKeys.add(keyEntry.key);
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
       try {
-        const response = await ai.models.generateContent({
-          model: config.gemini.model,
-          contents: userContent,
-          config: {
-            systemInstruction: systemPrompt,
-            temperature,
-            abortSignal: controller.signal,
-            ...(json ? { responseMimeType: 'application/json' } : {}),
-          },
-        });
-        clearTimeout(timer);
-        return response.text ?? '';
+        const result = await tryProviderKey(keyEntry, systemPrompt, userContent, { temperature, json });
+        return result;
       } catch (err) {
-        clearTimeout(timer);
         const msg = String(err?.message || err);
-        const classified = classifyProviderError('Gemini', msg);
+        const classified = classifyProviderError(keyEntry.provider, msg);
 
-        if (classified?.code === 'GEMINI_QUOTA') {
+        if (classified?.code === 'GEMINI_QUOTA' || classified?.code === 'GEMINI_KEY_INVALID') {
           lastKeyError = classified;
-          break;
-        }
-        if (classified?.code === 'GEMINI_KEY_INVALID') {
-          lastKeyError = classified;
-          break;
+          break; // Move to next key
         }
 
         if (classified?.code === 'GEMINI_UNAVAILABLE' && attempt < MAX_ATTEMPTS) {
           await sleep(700 * attempt);
-          continue;
+          continue; // Retry same key
         }
-        if (classified) {
-          lastKeyError = classified;
-          break;
-        }
-        throw new Error(`Gemini error: ${msg}`);
+        
+        lastKeyError = classified || err;
+        break; // Move to next key
       }
     }
   }
 
-  if (config.groq.apiKeys.length > 0) {
-    try {
-      return await groqFetch(systemPrompt, userContent, { temperature, json });
-    } catch (err) {
-      lastKeyError = err;
-    }
-  }
-
-  if (config.openRouter.apiKeys.length > 0) {
-    try {
-      return await openRouterFetch(systemPrompt, userContent, { temperature, json });
-    } catch (err) {
-      lastKeyError = err;
-    }
-  }
-
   throw lastKeyError || makeGeminiError('GEMINI_UNAVAILABLE', 'The AI service is unavailable.');
+};
+
+const tryGeminiKey = async (apiKey, systemPrompt, userContent, { temperature, json }) => {
+  const ai = getClient(apiKey);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: config.gemini.model,
+      contents: userContent,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature,
+        abortSignal: controller.signal,
+        ...(json ? { responseMimeType: 'application/json' } : {}),
+      },
+    });
+    clearTimeout(timer);
+    return response.text ?? '';
+  } catch (err) {
+    clearTimeout(timer);
+    const msg = String(err?.message || err);
+    const classified = classifyProviderError('Gemini', msg);
+    
+    if (classified) throw classified;
+    throw new Error(`Gemini error: ${msg}`);
+  }
+};
+
+const tryProviderKey = async (keyEntry, systemPrompt, userContent, { temperature, json }) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    let result;
+    
+    if (keyEntry.provider === 'Gemini') {
+      const ai = getClient(keyEntry.key);
+      const response = await ai.models.generateContent({
+        model: keyEntry.model,
+        contents: userContent,
+        config: {
+          systemInstruction: systemPrompt,
+          temperature,
+          abortSignal: controller.signal,
+          ...(json ? { responseMimeType: 'application/json' } : {}),
+        },
+      });
+      result = response.text ?? '';
+    } else if (keyEntry.provider === 'Groq') {
+      result = await fetchGroq(keyEntry.key, keyEntry.model, systemPrompt, userContent, { temperature, json, controller });
+    } else if (keyEntry.provider === 'OpenRouter') {
+      result = await fetchOpenRouter(keyEntry.key, keyEntry.model, systemPrompt, userContent, { temperature, json, controller });
+    }
+    
+    clearTimeout(timer);
+    return result;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+};
+
+const fetchGroq = async (apiKey, model, systemPrompt, userContent, { temperature, json, controller }) => {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    signal: controller.signal,
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: json ? `${systemPrompt}\n\nReturn only valid JSON. Do not wrap it in markdown.` : systemPrompt,
+        },
+        { role: 'user', content: userContent },
+      ],
+      temperature,
+      stream: false,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = data.error?.message || data.message || data.error || `HTTP ${response.status}`;
+    throw new Error(`Groq error: ${message}`);
+  }
+
+  return data.choices?.[0]?.message?.content || '';
+};
+
+const fetchOpenRouter = async (apiKey, model, systemPrompt, userContent, { temperature, json, controller }) => {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      ...(config.openRouter.referer ? { 'HTTP-Referer': config.openRouter.referer } : {}),
+      ...(config.openRouter.title ? { 'X-OpenRouter-Title': config.openRouter.title } : {}),
+    },
+    signal: controller.signal,
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: json ? `${systemPrompt}\n\nReturn only valid JSON. Do not wrap it in markdown.` : systemPrompt,
+        },
+        { role: 'user', content: userContent },
+      ],
+      temperature,
+      stream: false,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = data.error?.message || data.message || data.error || `HTTP ${response.status}`;
+    throw new Error(`OpenRouter error: ${message}`);
+  }
+
+  return data.choices?.[0]?.message?.content || '';
 };
 
 export const geminiChat = async (systemPrompt, userContent, temperature = 0, apiKey = null) => {
