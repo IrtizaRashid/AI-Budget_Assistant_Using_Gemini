@@ -10,6 +10,7 @@ import {
   listSessions,
   createSession,
   getSessionMessages,
+  deleteSession,
 } from '../services/chatService.js';
 
 const GREETING = {
@@ -98,6 +99,20 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
+  // Delete a conversation from the history sidebar.
+  const deleteSessionHandler = useCallback(async (id) => {
+    try {
+      await deleteSession(id);
+      await refreshSessions();
+      // If we deleted the current session, start a new chat
+      if (sessionId === id) {
+        await newChat();
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [sessionId, refreshSessions, newChat]);
+
   return (
     <ChatContext.Provider
       value={{
@@ -111,6 +126,7 @@ export function ChatProvider({ children }) {
         refreshSessions,
         newChat,
         loadSession,
+        deleteSession: deleteSessionHandler,
         initialized,
         GREETING,
       }}

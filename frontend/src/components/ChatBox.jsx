@@ -8,6 +8,39 @@ import VoiceInput from './VoiceInput.jsx';
 import ReallocationReviewCard from './ReallocationReviewCard.jsx';
 import SharedSplitCard from './SharedSplitCard.jsx';
 
+// Group messages by date for ChatGPT-style display
+const groupMessagesByDate = (messages) => {
+  const groups = [];
+  let currentDate = null;
+  
+  for (const msg of messages) {
+    const msgDate = msg.created_at ? new Date(msg.created_at) : new Date();
+    const dateKey = msgDate.toDateString();
+    
+    if (dateKey !== currentDate) {
+      currentDate = dateKey;
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      let dateLabel;
+      if (msgDate.toDateString() === today.toDateString()) {
+        dateLabel = 'Today';
+      } else if (msgDate.toDateString() === yesterday.toDateString()) {
+        dateLabel = 'Yesterday';
+      } else {
+        dateLabel = msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      
+      groups.push({ type: 'date', label: dateLabel });
+    }
+    
+    groups.push({ type: 'message', data: msg });
+  }
+  
+  return groups;
+};
+
 // Renders a rich AI query answer — handles bullet points, numbered lists, line breaks.
 const RichAnswer = ({ text, meta }) => {
   if (!text) return null;
@@ -617,49 +650,56 @@ export default function ChatBox({
 
       {/* Scrollable chat history */}
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${
-              msg.role === 'user' ? 'justify-end' : 'justify-start'
-            }`}
-          >
+        {groupMessagesByDate(messages).map((item, i) => (
+          item.type === 'date' ? (
+            <div key={`date-${i}`} className="flex justify-center">
+              <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-white/5 rounded-full">
+                {item.label}
+              </span>
+            </div>
+          ) : (
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                msg.role === 'user'
-                  ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white'
-                  : msg.isError
-                  ? 'bg-red-500/15 text-red-300'
-                  : 'bg-white/10 text-slate-200'
+              key={`msg-${i}`}
+              className={`flex ${
+                item.data.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
+              <div
+                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                  item.data.role === 'user'
+                    ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white'
+                    : item.data.isError
+                    ? 'bg-red-500/15 text-red-300'
+                    : 'bg-white/10 text-slate-200'
+                }`}
+              >
               {/* Interactive cards */}
-              {msg.type === 'confirmation' ? (
+              {item.data.type === 'confirmation' ? (
                 <ConfirmationCard
                   userId={userId}
-                  expense={msg.expense}
+                  expense={item.data.expense}
                   categories={categories}
                   onChanged={onDataChanged}
                   onWarning={onWarning}
                 />
-              ) : msg.type === 'duplicate' ? (
+              ) : item.data.type === 'duplicate' ? (
                 <DuplicateCard
                   userId={userId}
-                  expense={msg.expense}
+                  expense={item.data.expense}
                   onChanged={onDataChanged}
                   onWarning={onWarning}
                 />
-              ) : msg.type === 'reallocation_review' ? (
+              ) : item.data.type === 'reallocation_review' ? (
                 <ReallocationReviewCard
-                  reallocation={msg.reallocation}
+                  reallocation={item.data.reallocation}
                   onSaved={onReallocationSaved}
                   onCancelled={() => setMessages(prev => [...prev, { role: 'assistant', text: 'Reallocation cancelled.' }])}
                 />
-              ) : msg.type === 'split_needed' ? (
+              ) : item.data.type === 'split_needed' ? (
                 <>
-                  <p className="mb-2">{msg.text}</p>
+                  <p className="mb-2">{item.data.text}</p>
                   <SharedSplitCard
-                    expense={msg.expense}
+                    expense={item.data.expense}
                     userId={userId}
                     onSaved={(result) => {
                       setMessages((prev) => [
@@ -678,9 +718,9 @@ export default function ChatBox({
                     }
                   />
                 </>
-              ) : msg.type === 'insufficient_savings' ? (
+              ) : item.data.type === 'insufficient_savings' ? (
                 <InsufficientSavingsCard
-                  data={msg.savingsData}
+                  data={item.data.savingsData}
                   categories={categories}
                   userId={userId}
                   onCancelled={() =>
@@ -699,18 +739,18 @@ export default function ChatBox({
                     onDataChanged?.();
                   }}
                 />
-              ) : msg.type === 'show_loans' ? (
-                <LoanList loans={msg.loans} />
-              ) : msg.isRichAnswer ? (
-                <RichAnswer text={msg.text} meta={msg.meta} />
+              ) : item.data.type === 'show_loans' ? (
+                <LoanList loans={item.data.loans} />
+              ) : item.data.isRichAnswer ? (
+                <RichAnswer text={item.data.text} meta={item.data.meta} />
               ) : (
-                <p className="whitespace-pre-wrap">{msg.text}</p>
+                <p className="whitespace-pre-wrap">{item.data.text}</p>
               )}
 
               {/* Optional expense list for the show_expenses intent */}
-              {msg.expenses && msg.expenses.length > 0 && (
+              {item.data.expenses && item.data.expenses.length > 0 && (
                 <ul className="mt-2 space-y-1">
-                  {msg.expenses.map((e) => (
+                  {item.data.expenses.map((e) => (
                     <li
                       key={e.id}
                       className="flex justify-between gap-4 border-t border-white/10 pt-1 text-xs"
@@ -724,9 +764,10 @@ export default function ChatBox({
                   ))}
                 </ul>
               )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+          ))}
 
         {/* Loading indicator */}
         {loading && (

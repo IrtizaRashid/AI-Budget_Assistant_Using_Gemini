@@ -2,6 +2,7 @@
 // (Today / Yesterday / Last 7 Days / Last Month / Older), with a New Chat
 // button. Clicking a conversation reopens it in the chat window.
 import { useChat } from '../context/ChatContext.jsx';
+import { useState } from 'react';
 
 // Bucket a session's last_activity into a human-friendly group.
 const groupFor = (iso) => {
@@ -20,7 +21,23 @@ const groupFor = (iso) => {
 const GROUP_ORDER = ['Today', 'Yesterday', 'Last 7 Days', 'Last Month', 'Older'];
 
 export default function ChatHistorySidebar() {
-  const { sessions, sessionId, loadSession, newChat } = useChat();
+  const { sessions, sessionId, loadSession, newChat, deleteSession } = useChat();
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const handleDelete = async (e, sessionId) => {
+    e.stopPropagation();
+    if (deleteConfirm === sessionId) {
+      await deleteSession(sessionId);
+      setDeleteConfirm(null);
+    } else {
+      setDeleteConfirm(sessionId);
+    }
+  };
+
+  const handleLoad = (id) => {
+    if (deleteConfirm !== null) setDeleteConfirm(null);
+    loadSession(id);
+  };
 
   // Group sessions preserving the backend's newest-first order.
   const groups = {};
@@ -53,18 +70,33 @@ export default function ChatHistorySidebar() {
             </p>
             <div className="space-y-1">
               {groups[g].map((s) => (
-                <button
+                <div
                   key={s.id}
-                  onClick={() => loadSession(s.id)}
-                  className={`w-full truncate rounded-lg px-3 py-2 text-left text-xs transition ${
+                  className={`flex items-center gap-1 rounded-lg transition ${
                     s.id === sessionId
-                      ? 'bg-fuchsia-500/20 text-white'
-                      : 'text-slate-300 hover:bg-white/10'
+                      ? 'bg-fuchsia-500/20'
+                      : 'hover:bg-white/10'
                   }`}
-                  title={s.title}
                 >
-                  {s.title || 'New chat'}
-                </button>
+                  <button
+                    onClick={() => handleLoad(s.id)}
+                    className="flex-1 truncate rounded-lg px-3 py-2 text-left text-xs transition ${
+                      s.id === sessionId
+                        ? 'text-white'
+                        : 'text-slate-300'
+                    }`}
+                    title={s.title}
+                  >
+                    {s.title || 'New chat'}
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(e, s.id)}
+                    className="rounded-lg px-2 py-2 text-xs text-slate-400 hover:text-red-400 hover:bg-white/5 transition"
+                    title={deleteConfirm === s.id ? 'Confirm delete' : 'Delete chat'}
+                  >
+                    {deleteConfirm === s.id ? '✓' : '🗑'}
+                  </button>
+                </div>
               ))}
             </div>
           </div>
