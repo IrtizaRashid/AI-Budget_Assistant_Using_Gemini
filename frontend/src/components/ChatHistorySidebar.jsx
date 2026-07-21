@@ -94,7 +94,7 @@ export default function ChatHistorySidebar() {
                     className="rounded-lg px-2 py-2 text-xs text-slate-400 hover:text-red-400 hover:bg-white/5 transition"
                     title={deleteConfirm === s.id ? 'Confirm delete' : 'Delete chat'}
                   >
-                    {deleteConfirm === s.id ? '✓' : '🗑'}
+                    {deleteConfirm === s.id ? '✓' : '×'}
                   </button>
                 </div>
               ))}
