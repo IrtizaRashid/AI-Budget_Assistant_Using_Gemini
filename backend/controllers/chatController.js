@@ -67,11 +67,22 @@ const buildIncomeReallocation = async (userId, incomeAmount) => {
   const addedIncome = Number(incomeAmount);
   const newTotalIncome = currentIncome + addedIncome;
 
+  // Normalize each category's share against the SUM OF ALLOCATIONS, not
+  // monthly_budget. The two can drift apart (loan repayments etc. adjust the
+  // budget without rescaling allocations); dividing by monthly_budget then
+  // makes the shares sum past 100%, over-allocating the new total and pushing
+  // the last category negative. Dividing by the allocation total guarantees
+  // the proposal sums exactly to the new budget.
+  const totalAllocated = categories.reduce(
+    (sum, c) => sum + Number(c.allocated_amount), 0
+  );
+
   let allocated = 0;
   const rows = categories.map((category, index) => {
     const currentAmount = Number(category.allocated_amount);
-    const currentPercentage =
-      currentIncome > 0 ? (currentAmount / currentIncome) * 100 : 0;
+    const currentPercentage = totalAllocated > 0
+      ? (currentAmount / totalAllocated) * 100
+      : 100 / categories.length; // no allocations yet → equal split
     const isLast = index === categories.length - 1;
     const calculatedAmount = isLast
       ? Number((newTotalIncome - allocated).toFixed(2))
