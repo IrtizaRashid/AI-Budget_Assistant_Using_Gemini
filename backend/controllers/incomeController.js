@@ -27,7 +27,33 @@ export const createIncome = asyncHandler(async (req, res) => {
 
 // DELETE /api/income/:incomeId
 export const removeIncome = asyncHandler(async (req, res) => {
-  const deleted = await incomeService.deleteIncomeById(req.params.incomeId);
-  if (!deleted) return res.status(404).json({ error: 'Income record not found.' });
-  return res.status(200).json({ success: true });
+  const { incomeId } = req.params;
+  const userId = req.user?.userId;
+
+  if (!incomeId || isNaN(Number(incomeId))) {
+    return res.status(400).json({ error: 'Invalid income id.' });
+  }
+
+  try {
+    const result = await incomeService.deleteIncomeById({ incomeId, userId });
+    if (!result) return res.status(404).json({ error: 'Income record not found.' });
+    return res.status(200).json({
+      success: true,
+      message: 'Income deleted and budget updated.',
+      ...result,
+    });
+  } catch (err) {
+    if (String(err.code || '').startsWith('INCOME_DELETE_')) {
+      return res.status(400).json({
+        error: err.message,
+        code: err.code,
+        currentBudget: err.currentBudget,
+        incomeAmount: err.incomeAmount,
+        newBudget: err.newBudget,
+        totalSpent: err.totalSpent,
+        categorySpent: err.categorySpent,
+      });
+    }
+    throw err;
+  }
 });

@@ -24,15 +24,21 @@ const formatDate = (raw) => {
 
 export default function IncomeHistory({ income = [], onChanged }) {
   const [deletingId, setDeletingId] = useState(null);
+  const [error, setError] = useState('');
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Remove this income record? Your budget allocation will not change.')) return;
+  const handleDelete = async (entry) => {
+    if (!window.confirm(`Remove this income record of ${formatPKR(entry.amount)}? Your dashboard budget and allocations will be updated.`)) return;
+    setError('');
+    const id = entry.id;
     setDeletingId(id);
     try {
       await deleteIncomeRecord(id);
       onChanged?.();
-    } catch {
-      alert('Could not delete income record. Please try again.');
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+          'Could not delete income record. Please try again.'
+      );
     } finally {
       setDeletingId(null);
     }
@@ -60,6 +66,11 @@ export default function IncomeHistory({ income = [], onChanged }) {
         </div>
       ) : (
         <div className="divide-y divide-white divide-opacity-5">
+          {error && (
+            <div className="bg-red-500 bg-opacity-10 px-4 py-2 text-xs text-red-300">
+              {error}
+            </div>
+          )}
           {income.map((entry) => (
             <div
               key={entry.id}
@@ -104,7 +115,7 @@ export default function IncomeHistory({ income = [], onChanged }) {
 
               {/* Delete */}
               <button
-                onClick={() => handleDelete(entry.id)}
+                onClick={() => handleDelete(entry)}
                 disabled={deletingId === entry.id}
                 title="Remove record"
                 className="shrink-0 rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500 hover:bg-opacity-10 hover:text-red-400 disabled:opacity-40"

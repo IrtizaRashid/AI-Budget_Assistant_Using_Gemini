@@ -4,10 +4,13 @@ import { getIncome, deleteIncomeRecord } from '../services/api.js';
 import { formatPKR, formatDate } from '../utils/format.js';
 
 export default function IncomePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const userId = user?.id;
   const [incomeRecords, setIncomeRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
 
   // Search + filter
   const [search, setSearch] = useState('');
@@ -30,11 +33,28 @@ export default function IncomePage() {
   }, [userId]);
 
   const handleDelete = async (id) => {
+    const record = incomeRecords.find((entry) => entry.id === id);
+    const amount = record ? ` of ${formatPKR(record.amount)}` : '';
+    if (!window.confirm(`Delete this income${amount}? Your dashboard budget and category allocations will be reduced too.`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    setNotice('');
+    setError('');
     try {
-      await deleteIncomeRecord(id);
-      loadIncome();
+      const result = await deleteIncomeRecord(id);
+      await loadIncome();
+      await refreshUser?.();
+      setNotice(result?.message || 'Income deleted and dashboard updated.');
     } catch (error) {
       console.error('Failed to delete income:', error);
+      setError(
+        error?.response?.data?.error ||
+          'This income could not be deleted. Please try again.'
+      );
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -62,6 +82,18 @@ export default function IncomePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Income</h1>
       </div>
+
+      {notice && (
+        <div className="mb-4 rounded-lg border border-emerald-500 border-opacity-30 bg-emerald-500 bg-opacity-10 px-4 py-3 text-sm text-emerald-200">
+          {notice}
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-500 border-opacity-30 bg-red-500 bg-opacity-10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
 
       {/* Summary Card */}
       <div className="mb-6 rounded-2xl border border-white border-opacity-10 bg-[rgba(255,255,255,0.04)] p-6 backdrop-blur-sm">
@@ -138,9 +170,10 @@ export default function IncomePage() {
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => handleDelete(record.id)}
-                        className="text-slate-400 hover:text-red-400 transition-colors"
+                        disabled={deletingId === record.id}
+                        className="text-slate-400 transition-colors hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Delete
+                        {deletingId === record.id ? 'Deleting...' : 'Delete'}
                       </button>
                     </td>
                   </tr>
